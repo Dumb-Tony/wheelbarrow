@@ -1,30 +1,27 @@
 # Wheelbarrow
 
-A standalone 2.5D cargo physics experiment. Deliver at least four of six loose bricks through a delivery yard. Take the wide route or risk the bumpy shortcut. Spills are recoverable.
+[Play the first-person prototype](https://dumb-tony.github.io/wheelbarrow/)
 
-## Play
+Push a wheelbarrow through a delivery yard while balancing six loose bricks with your mouse. Deliver four to succeed, or bring all six. Choose the wide route or risk the bumpy shortcut; recover spills and continue.
 
-Public deployment: https://dumb-tony.github.io/wheelbarrow/ (verified live 14 September 2026; first playable commit 6fb487b).
+## Controls
 
-Open index.html directly for offline play. No installation, assets, build step, or network dependency. Desktop keyboard required.
+- W / Up: push forward. S / Down: reverse. Release to slow down.
+- A / Left and D / Right: turn the wheelbarrow and your view, even while stopped.
+- Mouse inside the game: set tray tilt. Left/right rolls it; up/down tips it forward/back. Center is level. Correct a sliding load before it reaches the rim.
+- To unload: stop inside the striped delivery bay and move the mouse to the top center of the game view.
+- E: recover one nearby spilled brick. Let it settle before moving.
+- P or button: pause/resume. Focus loss pauses automatically.
+- R or button: restart. Moving the pointer outside the game returns the target tilt to neutral.
 
-- W / S: push / reverse; release to brake naturally.
-- A / D: steer, including while stationary.
-- Up / Down: raise / lower handles; height stays where you leave it.
-- Space: hold to tip forward. Stop well inside the delivery bay first.
-- E: recover one nearby spilled brick; wait for it to settle.
-- P or button: pause / resume. Focus loss pauses automatically.
-- R or button: restart immediately.
+No pointer lock or mouse button is required. Mouse position sets the target angle with a damped response. Turning also leans the tray. The camera stays upright so the load movement remains readable. A small map marks the delivery bay and spilled cargo.
 
-Delivered count, elapsed time, and spill events are separate. Four bricks earns acceptance; continue for all six. Time continues while collecting the rest. A spill counts each exit outside the bay, including repeated spills of the same brick.
+Desktop keyboard and mouse required. Open index.html directly for offline play: no installation, build, downloaded assets or network dependency.
 
-## Validation
+## Tests and limits
 
-Run `node test-physics.cjs` for deterministic input replays of a full safe delivery, aggressive spill, recovery and subsequent delivery, pause, and reset. See docs/PLAYTEST.md for results and limits. These replays are not human feel testing.
+Run `node test-physics.cjs`. Current checks cover full cautious delivery (6/6, no spills), aggressive spill and recovery delivery (6/6), corrected mouse tilt versus sustained tilt, arrow controls, pause and reset. Browser checks cover perspective rendering, pointer-driven roll and spills, keyboard pause, restart, resizing and errors. Full routes use deterministic simulation replays; human feel testing remains pending.
 
-## Model boundaries
+This is a first-person software-perspective prototype with simplified physics: independent spherical cargo contacts, no brick rotation, simplified tray rims, ground/storage collisions and simulated turn forces. The tray is not a complete rigid-body chassis. No audio, touch controls or saved scores. Small-screen yard details are small.
 
-Overhead driving plus a side-view cargo inset. Six independent bodies use spherical contacts, gravity, momentum, friction, raised tray edges, and storage collisions. Handle angle changes gravity along the tray; turns apply lateral acceleration; rumble strips bounce the load. No brick rotation, full chassis rigid-body simulation, audio, or touch controls. Small screens fit the interface but make yard labels small.
-
-Design: docs/GDD.md. Milestone: docs/PROTOTYPE_PLAN.md. External testing: docs/PLAYTEST.md.
-
+See docs/GDD.md and docs/PLAYTEST.md for design and test history. Repository: https://github.com/Dumb-Tony/wheelbarrow.

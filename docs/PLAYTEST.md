@@ -36,3 +36,22 @@ Additional final-build browser checks: Restart from pause visibly restored zero 
 ## Public deployment
 
 Verified https://dumb-tony.github.io/wheelbarrow/ in the browser on 14 September 2026: game title, canvas, controls and initial counters loaded successfully from GitHub Pages. First playable commit: 6fb487b. Public repository: https://github.com/Dumb-Tony/wheelbarrow.
+
+## Revision 2 — first-person mouse balance, 14 September 2026
+
+This section supersedes the presentation/control limitations in the original entry.
+
+Automated same-logic simulation replays:
+- Entire wide route with centered mouse, followed by mouse-forward unloading: **6 delivered, 0 spills**.
+- Fast push and right turn: **6 spills**. Drive back to the accessible corridor near (540,330), recover each brick, then complete the shortcut cautiously and unload: **6 delivered, 6 spills**, no restart during recovery.
+- Mouse full-right for 65 steps, counter-left for 40 steps, then center: **0 spills**. Full-right sustained for 600 steps: **6 spills**. Step rate 120 Hz. Explicit assertions verify correction can save the load.
+- Up and W produce identical displacement. Right and D produce identical heading. Down reverses; Left turns left.
+- Pause and reset assertions pass.
+
+Browser UI checks on revised build:
+- Desktop screenshot confirms first-person yard, near tray, independent cargo, handles, hands, map and balance indicator.
+- Pointer drag from center toward right visibly rolled the tray (32 degrees in captured frame); sustained tilt produced six spills and a nearby-recovery prompt.
+- Restart cleared spills, time and tilt. Arrow-Up accepted from focused canvas; P visibly paused. Error/warning logs empty.
+- Narrow viewport checked for layout; keyboard and mouse still required. Desktop is the intended play size.
+
+Full success and recovery routes are automated simulation input replays, not real-time human browser playtests. Human first-person feel testing remains pending. Known simplifications: software face-depth sorting can have minor overlap artifacts, spherical brick contacts without rotation, simplified tray rather than a complete chassis, no mouse-look (turn using A/D or arrows), no pointer lock, no sound/touch/save. Pointer outside the canvas neutralizes the target tilt. Physical spill conversion uses simplified yard coordinates.

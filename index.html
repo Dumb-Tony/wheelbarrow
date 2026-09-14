@@ -6,33 +6,34 @@ main{max-width:min(1280px,max(650px,calc((100vh - 290px)*1.875 + 44px)))}
 </style>
 <main><header><div><small>YARD JOB No. 01 / PHYSICS EXPERIMENT</small><h1>Wheelbarrow</h1></div><div><button id="pause">Pause</button> <button id="reset">Restart</button></div></header>
 <div class="stats"><span><b id="delivered">0 / 6</b>delivered · need 4</span><span><b id="time">0:00</b>elapsed</span><span><b id="spills">0</b>spills</span></div>
-<canvas id="game" width="1200" height="640" aria-label="Delivery yard. Use W S to move, A D to turn, arrow keys to adjust handles, E to recover and Space to tip." tabindex="0"></canvas>
+<canvas id="game" width="1200" height="640" aria-label="Delivery yard. Use W S to move, A D to turn, arrow keys also move and steer. Mouse tilts the tray. E recovers bricks." tabindex="0"></canvas>
 <p class="message" id="message" role="status">Six loose bricks. A gentle start is a good start.</p>
-<footer><div><kbd>W / S</kbd> push / reverse &nbsp; <kbd>A / D</kbd> steer &nbsp; <kbd>↑ / ↓</kbd> raise / lower handles<br><kbd>Space</kbd> tip forward &nbsp; <kbd>E</kbd> recover nearby brick &nbsp; <kbd>P</kbd> pause &nbsp; <kbd>R</kbd> restart</div><div class="muted">2.5D simplification · independent cargo, spherical contacts<br>Deliver inside the striped bay. Recover spills and keep going.</div></footer></main>
+<footer><div><kbd>WASD / arrows</kbd> push, reverse & steer &nbsp; <kbd>Mouse</kbd> balance the tray<br><kbd>Mouse to top</kbd> tip forward &nbsp; <kbd>E</kbd> recover nearby brick &nbsp; <kbd>P</kbd> pause &nbsp; <kbd>R</kbd> restart</div><div class="muted">First-person prototype · mouse position sets tilt<br>Center mouse = level. Release movement to slow down.</div></footer></main>
 <script>
 'use strict';
 const canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d'),keys=new Set();
 const blocks=[{x:410,y:110,w:360,h:145},{x:410,y:395,w:360,h:105}];
-let car,cargo,elapsed,spills,delivered,paused,won,handle,pitch,previousSpeed,notice,noticeUntil,accumulator=0;
+let car,cargo,elapsed,spills,delivered,paused,won,handle,pitch,previousSpeed,notice,noticeUntil,accumulator=0,roll=0,mouseX=0,mouseY=0;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-function reset(){car={x:145,y:325,a:0,v:0};cargo=Array.from({length:6},(_,i)=>({id:i,x:(i%3-1)*17,y:(Math.floor(i/3)-.5)*17,z:7,vx:0,vy:0,vz:0,state:'tray'}));elapsed=spills=delivered=handle=pitch=previousSpeed=0;paused=won=false;keys.clear();accumulator=0;notice='Six loose bricks. A gentle start is a good start.';noticeUntil=5;document.querySelector('#pause').textContent='Pause';}
+function reset(){car={x:145,y:325,a:0,v:0};cargo=Array.from({length:6},(_,i)=>({id:i,x:(i%3-1)*17,y:(Math.floor(i/3)-.5)*17,z:7,vx:0,vy:0,vz:0,state:'tray'}));elapsed=spills=delivered=handle=pitch=previousSpeed=roll=mouseX=mouseY=0;paused=won=false;keys.clear();accumulator=0;notice='Mouse balances the tray. W / ↑ pushes. Deliver four bricks.';noticeUntil=7;document.querySelector('#pause').textContent='Pause';}
 function say(s){notice=s;noticeUntil=elapsed+4;}
 function toggle(){paused=!paused;keys.clear();document.querySelector('#pause').textContent=paused?'Resume':'Pause';}
 function world(b){return{x:car.x+Math.cos(car.a)*b.x-Math.sin(car.a)*b.y,y:car.y+Math.sin(car.a)*b.x+Math.cos(car.a)*b.y};}
 function inBay(x,y){return x>990&&x<1160&&y>230&&y<425;}
-function recover(){let b=cargo.find(b=>b.state==='ground'&&Math.hypot(b.x-car.x,b.y-car.y)<90);if(b){Object.assign(b,{state:'tray',x:-15,y:0,z:40,vx:0,vy:0,vz:0});say('Brick recovered. Let it settle before pushing.');}else say('Get within the dotted recovery circle of a spilled brick.');}
+function recover(){let b=cargo.find(b=>b.state==='ground'&&Math.hypot(b.x-car.x,b.y-car.y)<90);if(b){Object.assign(b,{state:'tray',x:-15,y:0,z:40,vx:0,vy:0,vz:0});say('Brick recovered. Let it settle before pushing.');}else say('Move closer to a spilled brick. Red dots on the map show spills.');}
 function step(dt){if(paused)return;elapsed+=dt;
- const throttle=(keys.has('w')?1:0)-(keys.has('s')?1:0),turn=(keys.has('d')?1:0)-(keys.has('a')?1:0);
- handle=clamp(handle+((keys.has('arrowup')?1:0)-(keys.has('arrowdown')?1:0))*dt*.55,-.28,.65);
- const target=keys.has(' ')?1.05:handle;pitch+=(target-pitch)*Math.min(1,dt*5);
+ const throttle=(keys.has('w')||keys.has('arrowup')?1:0)-(keys.has('s')||keys.has('arrowdown')?1:0),turn=(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0);
+ handle=-mouseY*1.1;
+ pitch+=(handle-pitch)*Math.min(1,dt*5);
  previousSpeed=car.v;car.v+=throttle*90*dt;car.v*=Math.exp(-(throttle?.45:2.4)*dt);car.v=clamp(car.v,-85,165);
  const omega=turn*(.5+Math.abs(car.v)/115);car.a+=omega*dt;
+ roll+=(mouseX*.95+omega*car.v*.0015-roll)*Math.min(1,dt*5);
  const ox=car.x,oy=car.y;car.x=clamp(car.x+Math.cos(car.a)*car.v*dt,45,1165);car.y=clamp(car.y+Math.sin(car.a)*car.v*dt,60,585);
  for(const r of blocks)if(car.x>r.x-26&&car.x<r.x+r.w+26&&car.y>r.y-26&&car.y<r.y+r.h+26){car.x=ox;car.y=oy;car.v=-car.v*.15;}
  const acceleration=(car.v-previousSpeed)/dt;
  const rough=car.x>370&&car.x<820&&car.y>280&&car.y<370;
  for(const b of cargo){if(b.state==='tray'){
-  b.vx+=(Math.sin(pitch)*190-acceleration*.85)*dt;b.vy+=(-omega*car.v*1.45)*dt;b.vz-=220*dt;
+  b.vx+=(Math.sin(pitch)*190-acceleration*.85)*dt;b.vy+=(Math.sin(roll)*240-omega*car.v*1.45)*dt;b.vz-=220*dt;
   b.x+=b.vx*dt;b.y+=b.vy*dt;b.z+=b.vz*dt;
   const edgeX=Math.max(0,Math.abs(b.x)-24),edgeY=Math.max(0,Math.abs(b.y)-15);const floor=6+Math.max(edgeX*.9,edgeY*1.1);
   if(b.z<floor){b.z=floor;b.vz=Math.max(0,-b.vz*.15);b.vx*=Math.exp(-2.8*dt);b.vy*=Math.exp(-2.8*dt);if(edgeX)b.vx-=Math.sign(b.x)*150*dt;if(edgeY)b.vy-=Math.sign(b.y)*160*dt;
@@ -50,22 +51,51 @@ function step(dt){if(paused)return;elapsed+=dt;
 function rect(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(x,y,w,h)}
 function label(text,x,y,size=14,color='#51645b'){ctx.fillStyle=color;ctx.font=`600 ${size}px system-ui`;ctx.fillText(text,x,y)}
 function brick(x,y,id,scale=1){ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);rect(-7,-5,14,10,'#833f2d');rect(-6,-7,12,9,'#d77f50');rect(-4,-5,3,3,'#ad5a39');rect(1,-5,3,3,'#ad5a39');ctx.restore()}
-function draw(){ctx.clearRect(0,0,1200,640);rect(0,0,1200,640,'#cec8ac');
- for(let x=25;x<1200;x+=45)for(let y=25;y<640;y+=45){ctx.fillStyle='#c3bea4';ctx.fillRect(x,y,2,2)}
- ctx.strokeStyle='#e8e0c5';ctx.lineWidth=85;ctx.beginPath();ctx.moveTo(145,330);ctx.lineTo(270,550);ctx.lineTo(900,550);ctx.lineTo(1060,330);ctx.stroke();
- label('WIDE ROUTE · take your time',440,565,17);rect(370,282,450,86,'#b2a887');for(let x=380;x<820;x+=28)rect(x,286,8,77,'#918f77');label('SHORTCUT / RUMBLE STRIPS',432,325,15,'#f7efd6');
- for(const r of blocks){rect(r.x+5,r.y+8,r.w,r.h,'#afa68b');rect(r.x,r.y,r.w,r.h,'#5b7062');for(let x=r.x+10;x<r.x+r.w;x+=45){rect(x,r.y+12,30,r.h-24,'#697e6b')}label('YARD STORAGE',r.x+105,r.y+r.h/2,17,'#c2ceb1')}
- rect(990,230,170,195,'#778f77');ctx.strokeStyle='#f7e7b6';ctx.lineWidth=3;ctx.setLineDash([12,8]);ctx.strokeRect(993,233,164,189);ctx.setLineDash([]);label('DELIVERY',1010,265,22,'#fff0cf');label('STOP + SPACE',1005,405,16,'#fff0cf');
- label('START',95,280,16);label('01 — THE SIX-BRICK JOB',35,40,19);label('FOUR MAKES A DELIVERY. SIX MAKES YOUR DAY.',35,65,12);
- for(const b of cargo)if(b.state!=='tray'){if(b.state==='ground'){ctx.strokeStyle='#917252';ctx.setLineDash([3,8]);ctx.beginPath();ctx.arc(b.x,b.y,90,0,Math.PI*2);ctx.stroke();ctx.setLineDash([])}brick(b.x,b.y-b.z*.3,b.id)}
- ctx.save();ctx.translate(car.x,car.y);ctx.rotate(car.a);rect(-62,-20,42,5,'#6b5944');rect(-62,15,42,5,'#6b5944');rect(30,-8,26,16,'#263f3a');rect(-34,-29,73,58,'#354e4b');rect(-29,-24,61,48,'#8da5a0');for(const b of cargo)if(b.state==='tray')brick(b.x,b.y-b.z*.15,b.id);ctx.restore();
- // A side view makes handle pitch and each brick's vertical motion readable.
- rect(825,20,350,173,'#233c39');label('LIVE LOAD / SIDE VIEW',843,45,12,'#f4c465');ctx.save();ctx.translate(995,124);ctx.rotate(pitch);rect(-105,12,64,5,'#d2b477');rect(-48,8,97,5,'#9dbab0');rect(-48,-6,5,20,'#9dbab0');rect(45,-6,5,20,'#9dbab0');for(const b of cargo)if(b.state==='tray')brick(b.x,-b.z,b.id,1.2);ctx.restore();label(`HANDLES ${Math.round(handle*100)}%  ·  ${Math.round(Math.abs(car.v))} speed`,843,176,12,'#c6d8ca');
+
+// Software perspective: forward, lateral, height; clip each face at the camera.
+function cameraPoint(p){const dx=p[0]-car.x,dy=p[1]-car.y;return [dx*Math.cos(car.a)+dy*Math.sin(car.a)+140,-dx*Math.sin(car.a)+dy*Math.cos(car.a),p[2]]}
+function project(p){return [600+p[1]*560/p[0],170+(110-p[2])*560/p[0]]}
+function clipped(points){let out=[];for(let i=0;i<points.length;i++){let a=points[i],b=points[(i+1)%points.length],ia=a[0]>=8,ib=b[0]>=8;if(ia)out.push(a);if(ia!==ib){let t=(8-a[0])/(b[0]-a[0]);out.push(a.map((v,k)=>v+(b[k]-v)*t))}}return out}
+function draw(){
+ const sky=ctx.createLinearGradient(0,0,0,300);sky.addColorStop(0,'#8fafb6');sky.addColorStop(1,'#e7dabc');ctx.fillStyle=sky;ctx.fillRect(0,0,1200,640);rect(0,170,1200,470,'#b9b191');
+ ctx.fillStyle='#f5deb0';ctx.beginPath();ctx.arc(980,80,32,0,Math.PI*2);ctx.fill();
+ let faces=[];
+ function face(points,color){let ps=points.map(cameraPoint),depth=ps.reduce((a,p)=>a+p[0],0)/ps.length;faces.push({ps:clipped(ps),depth,color})}
+ function quad(x,y,w,h,z,color){face([[x,y,z],[x+w,y,z],[x+w,y+h,z],[x,y+h,z]],color)}
+ function box(x,y,z,w,h,t,colors,transform=p=>p){let p=[[x,y,z],[x+w,y,z],[x+w,y+h,z],[x,y+h,z],[x,y,z+t],[x+w,y,z+t],[x+w,y+h,z+t],[x,y+h,z+t]].map(transform);for(const [ids,col]of [[[0,1,5,4],colors[0]],[[1,2,6,5],colors[1]],[[2,3,7,6],colors[0]],[[3,0,4,7],colors[1]],[[4,5,6,7],colors[2]]])face(ids.map(i=>p[i]),col)}
+ // Ground tessellation avoids giant polygons crossing the perspective camera.
+ for(let x=0;x<1200;x+=40)for(let y=0;y<640;y+=40)quad(x,y,40,40,0,((x+y)/40)%2?'#c7bea0':'#c3ba9b');
+ for(let x=240;x<940;x+=35)quad(x,512,35,75,.3,'#e4d6b3');
+ for(let y=340;y<550;y+=30)quad(220,y,75,30,.3,'#e4d6b3');for(let y=350;y<550;y+=30)quad(875,y,75,30,.3,'#e4d6b3');
+ for(let x=380;x<820;x+=28)box(x,283,0,8,83,3,['#958d70','#a29b80','#b0a17b']);
+ for(const r of blocks){box(r.x,r.y,0,r.w,r.h,80,['#4b675d','#3b574e','#789080']);for(let x=r.x+10;x<r.x+r.w;x+=45)box(x,r.y-1,8,3,2,62,['#9baa89','#738574','#8c9f86'])}
+ for(let y=230;y<425;y+=20)quad(990,y,170,20,.5,'#7a947a');for(let y=230;y<425;y+=24){quad(990,y,6,12,1,'#ffebba');quad(1154,y,6,12,1,'#ffebba')}for(let x=990;x<1160;x+=24){quad(x,230,12,6,1,'#ffebba');quad(x,419,12,6,1,'#ffebba')}
+ // Fence and distant route markers.
+ for(let x=0;x<=1200;x+=80){box(x,25,0,5,5,55,['#69766a','#536558','#96a48c']);box(x,615,0,5,5,55,['#69766a','#536558','#96a48c'])}
+ for(const b of cargo)if(b.state!=='tray')box(b.x-7,b.y-5,Math.max(0,b.z-6),14,10,8,['#a6583b','#7c402d',b.state==='delivered'?'#edbe76':'#dc8b55']);
+ const tray=p=>{let x=p[0]*Math.cos(pitch)+p[2]*Math.sin(pitch),z=-p[0]*Math.sin(pitch)+p[2]*Math.cos(pitch),y=p[1]*Math.cos(roll)+z*Math.sin(roll);z=-p[1]*Math.sin(roll)+z*Math.cos(roll);return[car.x+x*Math.cos(car.a)-y*Math.sin(car.a),car.y+x*Math.sin(car.a)+y*Math.cos(car.a),z+35]};
+ box(-42,-31,-4,84,62,4,['#42635f','#365651','#8ba9a0'],tray);
+ box(-44,-34,0,88,4,13,['#42635f','#365651','#a7c1b1'],tray);box(-44,30,0,88,4,13,['#42635f','#365651','#a7c1b1'],tray);
+ box(-44,-30,0,4,60,13,['#42635f','#365651','#a7c1b1'],tray);box(40,-30,0,4,60,13,['#42635f','#365651','#a7c1b1'],tray);
+ for(let y of [-27,23]){box(-105,y,-5,70,5,5,['#85643d','#624e34','#d1b17c'],tray);box(-66,y-2,8,16,9,10,['#956849','#b78059','#d6a278'],tray)}
+ for(const b of cargo)if(b.state==='tray')box(b.x-7,b.y-5,b.z-6,14,10,10,['#a8573b','#80412e','#e19762'],tray);
+ faces.sort((a,b)=>b.depth-a.depth);for(const f of faces){if(f.ps.length<3)continue;ctx.beginPath();f.ps.forEach((p,i)=>{let q=project(p);if(i)ctx.lineTo(...q);else ctx.moveTo(...q)});ctx.closePath();ctx.fillStyle=f.color;ctx.fill();}
+ // Fixed, readable destination bearing plus compact yard map.
+ rect(20,20,270,62,'#1f3836e8');label('DELIVER FOUR OF SIX',36,45,16,'#f4c465');label('Release movement to slow down',36,66,13,'#e6e3cf');
+ rect(968,20,212,137,'#1f3836e8');label('YARD / YOU ▲',983,43,12,'#f4c465');ctx.save();ctx.translate(980,50);ctx.scale(.155,.155);rect(0,0,1200,640,'#c8bfa0');for(let r of blocks)rect(r.x,r.y,r.w,r.h,'#486258');rect(990,230,170,195,'#f3c367');for(let b of cargo)if(b.state==='ground'){ctx.fillStyle='#983e25';ctx.beginPath();ctx.arc(b.x,b.y,13,0,7);ctx.fill()}ctx.translate(car.x,car.y);ctx.rotate(car.a);ctx.fillStyle='#183e3e';ctx.beginPath();ctx.moveTo(30,0);ctx.lineTo(-20,-20);ctx.lineTo(-20,20);ctx.closePath();ctx.fill();ctx.restore();
+ let bearing=Math.atan2(325-car.y,1070-car.x)-car.a;while(bearing>Math.PI)bearing-=Math.PI*2;while(bearing< -Math.PI)bearing+=Math.PI*2;
+ label((Math.abs(bearing)<.2?'↑':bearing>0?'→':'←')+' DELIVERY · '+Math.round(Math.hypot(1070-car.x,325-car.y)/10)+' m',470,48,19,'#203d37');
+ rect(22,530,240,89,'#1f3836ee');label('MOUSE = BALANCE',38,555,14,'#f4c465');label('Center to level · top to tip',38,578,13,'#e4e7d7');label('Tilt '+Math.round(roll*57)+'° / '+Math.round(pitch*57)+'°',38,601,13,'#e4e7d7');
+ ctx.strokeStyle='#e9d9ab';ctx.lineWidth=2;ctx.strokeRect(1100,537,62,62);ctx.beginPath();ctx.moveTo(1131,537);ctx.lineTo(1131,599);ctx.moveTo(1100,568);ctx.lineTo(1162,568);ctx.stroke();ctx.fillStyle='#f4c465';ctx.beginPath();ctx.arc(1131+mouseX*29,568+mouseY*29,5,0,7);ctx.fill();
  if(paused){rect(0,0,1200,640,'#132b2bdc');label('PAUSED',485,310,40,'#f4c465');label('Press P or Resume to continue',447,350,18,'#fff0cf')}
  document.querySelector('#delivered').textContent=delivered+' / 6';document.querySelector('#time').textContent=Math.floor(elapsed/60)+':'+String(Math.floor(elapsed%60)).padStart(2,'0');document.querySelector('#spills').textContent=spills;
  const near=cargo.some(b=>b.state==='ground'&&Math.hypot(b.x-car.x,b.y-car.y)<90);
- document.querySelector('#message').textContent=paused?'Paused — your load is safe.':near?'E — recover a nearby brick':elapsed<noticeUntil?notice:delivered===6?'Perfect delivery — all six accounted for! R to try a cleaner run.':inBay(car.x,car.y)?'Brake, then hold Space to tip into the bay.':won?'Delivery accepted. Recover any remaining bricks for six out of six.':'Gentle starts. Wide turns. Raise the handles to slide cargo forward.';
+ document.querySelector('#message').textContent=paused?'Paused — your load is safe.':near?'E — recover a nearby brick':elapsed<noticeUntil?notice:delivered===6?'Perfect delivery — all six accounted for! R to retry.':inBay(car.x,car.y)?'Stop here. Move mouse to the TOP of the view to unload.':won?'Delivery accepted! Collect the remaining bricks for a perfect six.':'Mouse left/right rolls the tray. Forward/back changes pitch. Keep the bricks centered.';
 }
-window.addEventListener('keydown',e=>{let k=e.key.toLowerCase();if([' ','arrowup','arrowdown','w','a','s','d','e','r','p'].includes(k))e.preventDefault();if(!e.repeat){if(k==='r')reset();if(k==='p')toggle();if(k==='e'&&!paused)recover();}keys.add(k)});window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{keys.clear();if(!paused)toggle()});document.querySelector('#pause').onclick=toggle;document.querySelector('#reset').onclick=reset;
+function setTilt(clientX,clientY){const r=canvas.getBoundingClientRect();mouseX=clamp((clientX-r.left)/r.width*2-1,-1,1);mouseY=clamp((clientY-r.top)/r.height*2-1,-1,1)}
+canvas.addEventListener('pointermove',e=>{if(!paused)setTilt(e.clientX,e.clientY)});
+canvas.addEventListener('pointerleave',()=>{mouseX=mouseY=0});
+window.addEventListener('keydown',e=>{let k=e.key.toLowerCase();if([' ','arrowup','arrowdown','arrowleft','arrowright','w','a','s','d','e','r','p'].includes(k))e.preventDefault();if(!e.repeat){if(k==='r')reset();if(k==='p')toggle();if(k==='e'&&!paused)recover();}keys.add(k)});window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{keys.clear();if(!paused)toggle()});document.querySelector('#pause').onclick=toggle;document.querySelector('#reset').onclick=reset;
 reset();let last=performance.now();function frame(now){accumulator+=Math.min((now-last)/1000,.1);last=now;while(accumulator>=1/120){step(1/120);accumulator-=1/120;}draw();requestAnimationFrame(frame)}requestAnimationFrame(frame);
 </script></html>
+

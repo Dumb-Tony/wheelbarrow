@@ -44,3 +44,11 @@ A new player should start interacting within 30 seconds. Run an entire successfu
 ## Implemented experiment — 14 September 2026
 
 M1 implemented as a labeled 2.5D simulation: overhead steering and a side cargo view. Six bodies with spherical contacts use gravity, friction, inertia, raised rim slopes and yard obstacle contacts. Pitch follows persistent handle height with damping; Space temporarily tips forward. A 120 Hz fixed step caps catch-up to 0.1 seconds. No camera shake. Stationary steering is permitted. Releasing movement brakes. Recovery is one brick per E within 90 yard units, including around storage edges. Delivered bricks settle and lock into their delivered state; time continues after four for optional completion of six. See PLAYTEST.md for evidence and simplifying assumptions.
+
+## Revision 2 — first-person balance, 14 September 2026
+
+User clarification supersedes the overhead presentation and original key mapping. The intended experience is first-person pushing with WASD/arrows while actively balancing with the mouse.
+
+Implemented: a perspective yard viewed from behind the handles, visible tray and independent bricks, procedural 3D faces drawn to Canvas with near-plane clipping. Camera remains upright. Mouse position relative to the game center sets damped pitch and roll; forward mouse tips forward, horizontal mouse rolls toward that side. Turning induces additional roll and lateral cargo acceleration. WASD and arrow keys are equivalent push/reverse/turn inputs. Space no longer dumps: stop in the bay and tip forward with the mouse. Mouse leaving the view returns the target to level. No pointer capture/lock is required.
+
+The safe and shortcut routes, four-of-six acceptance, recoverable bricks, separate counters and fixed simulation step remain. A compact map helps locate cargo behind the player. Physics remains an approximation with spherical contacts and ramp-like rims; rendering is now first-person perspective rather than overhead plus inset. Next gate: human testing of mouse sensitivity and whether counterbalancing while steering feels intuitive.
