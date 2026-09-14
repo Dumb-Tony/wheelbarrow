@@ -55,3 +55,22 @@ Browser UI checks on revised build:
 - Narrow viewport checked for layout; keyboard and mouse still required. Desktop is the intended play size.
 
 Full success and recovery routes are automated simulation input replays, not real-time human browser playtests. Human first-person feel testing remains pending. Known simplifications: software face-depth sorting can have minor overlap artifacts, spherical brick contacts without rotation, simplified tray rather than a complete chassis, no mouse-look (turn using A/D or arrows), no pointer lock, no sound/touch/save. Pointer outside the canvas neutralizes the target tilt. Physical spill conversion uses simplified yard coordinates.
+
+## Revision 3 — Garden Job graphics, 14 September 2026
+
+Graphics now use locally vendored Three.js 0.186.0. The original simulated paths and cargo mechanics remain. Real WebGL depth, PBR materials, procedural texture maps, sunlight shadows, greenhouse/cottage scenery, foliage, rounded cargo and gloved hands replace the software-perspective renderer. The webpage is full screen and responsive.
+
+Automated deterministic physics suite (`npm test`): all assertions pass. Cautious route: 6 delivered / 0 spills; aggressive motion: 6 spills; recovery completion: 6 delivered / 6 spills; corrected tilt retains cargo; sustained tilt spills; arrows, pause and reset pass.
+
+Automated real-time browser input replay, Codex in-app browser, 1280×720:
+- Safe route: **PASS — 6/6 delivered, 0 spills, 46 seconds**. Real key/pointer event handlers and the normal animation loop drove the complete garden loop and mouse-forward unloading. This is now a browser replay, beyond the earlier VM-only evidence.
+- During the recovery route, inspected all six recovered bricks in the 3D tray, with six spills retained in the counter.
+- Rendering sample during recovery: 200 rendered frames/second and 303 draw calls in this host/browser. This is one local sample, not a cross-device performance claim.
+- Initial and moving screenshots checked for cargo visibility, signs, path alignment and camera presentation. Moved a signpost clear of the wide route and fixed a missing cottage gable.
+- No JavaScript errors during the safe replay. The graphics driver emitted a shader precision warning during environment-map compilation; rendering completed normally. This is documented rather than suppressed.
+
+These automated replays do not replace human feel testing. Current art is the garden chapter only; construction and farm are roadmap items. Known limits: simplified cargo/chassis physics remain, scenery outside building footprints is decorative, and the trailing first-person camera can approach scenery at tight angles. HTTP and WebGL 2 are now required; direct file opening is no longer supported.
+
+Final real-time browser recovery replay: **PASS — 6/6 delivered, 6 spills, 53 seconds**, with no restart between spilling and delivery and no JavaScript errors. Pause showed the new overlay, Back to the garden resumed, and Restart restored zero counters on the normal game page. Victory copy was corrected to prioritize all-six completion over the temporary delivery notice.
+
+Responsive screenshots checked at 800×600 and 390×844: counters, pause/restart and controls remain visible without horizontal page overflow. Narrow views intentionally hide the map/chapter label and crop the 3D view; desktop keyboard and mouse remain required.

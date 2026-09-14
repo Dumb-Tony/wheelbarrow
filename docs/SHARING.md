@@ -1,5 +1,8 @@
 # Sharing
 
-Public repository: https://github.com/Dumb-Tony/wheelbarrow
+Play: https://dumb-tony.github.io/wheelbarrow/
+Repository: https://github.com/Dumb-Tony/wheelbarrow
 
-Static entry: index.html. GitHub Pages serves the main branch root. No external runtime dependencies. Only this game repository is published. See PLAYTEST.md for deployment verification and test limits.
+GitHub Pages serves main at the root. The garden revision includes index.html, garden.js, style.css and the vendored Three.js modules. No CDN or remote asset service is required. Only this game's repository is published. Run npm start to serve locally; opening index.html as a file no longer works with the module-based renderer.
+
+Progression through garden, construction yard and rustic farm is planned; only the garden currently ships. See PLAYTEST.md for evidence and limitations.

@@ -1,27 +1,37 @@
-# Wheelbarrow
+# Wheelbarrow — The Garden Job
 
-[Play the first-person prototype](https://dumb-tony.github.io/wheelbarrow/)
+[Play Wheelbarrow](https://dumb-tony.github.io/wheelbarrow/)
 
-Push a wheelbarrow through a delivery yard while balancing six loose bricks with your mouse. Deliver four to succeed, or bring all six. Choose the wide route or risk the bumpy shortcut; recover spills and continue.
+A stylized first-person balancing game: carry six loose bricks through a sunlit garden, keep them in the tray with your mouse, and deliver at least four. Take the easy garden path or risk the rough shortcut. A spill is a problem to recover from, not a game over.
+
+## Chapter one: the garden
+
+The graphics revision adds a real 3D renderer, warm sunlight and shadows, textured materials, a glass greenhouse, a potting cottage, garden beds, trees, timber signs and a detailed wheelbarrow with gloved hands. Bricks are separate beveled meshes that follow the existing physics.
+
+The longer-term direction is **garden → construction yard → rustic farm**. This release contains the garden chapter only. Later chapters should vary terrain, cargo and delivery decisions rather than add stat upgrades; see docs/GDD.md.
 
 ## Controls
 
-- W / Up: push forward. S / Down: reverse. Release to slow down.
-- A / Left and D / Right: turn the wheelbarrow and your view, even while stopped.
-- Mouse inside the game: set tray tilt. Left/right rolls it; up/down tips it forward/back. Center is level. Correct a sliding load before it reaches the rim.
-- To unload: stop inside the striped delivery bay and move the mouse to the top center of the game view.
+- W / Up: push. S / Down: reverse. Release to slow down.
+- A / Left and D / Right: turn the wheelbarrow and view.
+- Mouse: tilt the tray. Center is level; left/right rolls it, up/down tips forward/back.
+- To unload, stop inside the stone-bordered delivery apron and move the mouse to the top center.
 - E: recover one nearby spilled brick. Let it settle before moving.
-- P or button: pause/resume. Focus loss pauses automatically.
-- R or button: restart. Moving the pointer outside the game returns the target tilt to neutral.
+- P or button: pause/resume. Switching away pauses automatically.
+- R or button: restart. Moving outside the game returns target tilt to neutral.
 
-No pointer lock or mouse button is required. Mouse position sets the target angle with a damped response. Turning also leans the tray. The camera stays upright so the load movement remains readable. A small map marks the delivery bay and spilled cargo.
+Desktop keyboard, mouse and a WebGL 2 browser required. No pointer lock. No sound or touch controls yet.
 
-Desktop keyboard and mouse required. Open index.html directly for offline play: no installation, build, downloaded assets or network dependency.
+## Local development
 
-## Tests and limits
+The initial single-file experiment has become a static multi-file game. Serve it over HTTP; opening index.html directly is no longer supported because browser modules require a server.
 
-Run `node test-physics.cjs`. Current checks cover full cautious delivery (6/6, no spills), aggressive spill and recovery delivery (6/6), corrected mouse tilt versus sustained tilt, arrow controls, pause and reset. Browser checks cover perspective rendering, pointer-driven roll and spills, keyboard pause, restart, resizing and errors. Full routes use deterministic simulation replays; human feel testing remains pending.
+Run `npm start` (or `node serve.cjs`), then open http://localhost:8769. No install or build is needed to run it: the Three.js renderer is included in vendor/. `npm install` is only needed to refresh the pinned source package. See docs/ATTRIBUTION.md and vendor/LICENSE.
 
-This is a first-person software-perspective prototype with simplified physics: independent spherical cargo contacts, no brick rotation, simplified tray rims, ground/storage collisions and simulated turn forces. The tray is not a complete rigid-body chassis. No audio, touch controls or saved scores. Small-screen yard details are small.
+## Verification
 
-See docs/GDD.md and docs/PLAYTEST.md for design and test history. Repository: https://github.com/Dumb-Tony/wheelbarrow.
+`npm test` runs the deterministic physics suite: cautious delivery, aggressive spills, recovery and delivery, mouse correction, arrow controls, pause/reset.
+
+For real-time browser input replays, start the local server and open `/?replay=safe` or `/?replay=recovery`. These use the game's actual input handlers and frame loop and display pass/fail. They only activate on localhost. They are automated tests, not human feel testing.
+
+See docs/PLAYTEST.md for actual results. Known physics limits: spherical brick contacts without rotation, simplified tray rims and chassis, and approximate spill conversion. Most scenery is decorative; building collision footprints and the original route layout are retained. No campaign progression is implemented yet.

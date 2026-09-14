@@ -1,17 +1,19 @@
 <!doctype html>
-<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Wheelbarrow · A small delivery disaster</title>
-<style>
-*{box-sizing:border-box}body{margin:0;background:#172c2c;color:#f8ecd4;font-family:system-ui,sans-serif}main{max-width:1280px;margin:auto;padding:22px}header{display:flex;justify-content:space-between;align-items:center;gap:14px}h1{font-size:34px;letter-spacing:-1.5px;margin:0}small,.muted{color:#b6c7bd}button{background:#f4c465;color:#233732;border:0;border-radius:7px;padding:10px 16px;font-weight:750;cursor:pointer}button:focus-visible{outline:3px solid white;outline-offset:3px}.stats{display:flex;gap:25px;padding:18px 0;font-size:14px}.stats b{font-size:24px;color:#f4c465;margin-right:6px}canvas{display:block;width:100%;aspect-ratio:1200/640;background:#d4ccb0;border-radius:12px}footer{display:flex;gap:20px;justify-content:space-between;margin-top:13px;font-size:13px;line-height:1.8}kbd{color:#f4c465;font-weight:bold}.message{color:#f4c465;font-weight:650;min-height:24px;margin:10px 0 0}@media(max-width:650px){main{padding:10px}h1{font-size:25px}.stats{gap:12px}.stats b{font-size:20px}footer{display:block}header small{display:none}}
-main{max-width:min(1280px,max(650px,calc((100vh - 290px)*1.875 + 44px)))}
-</style>
-<main><header><div><small>YARD JOB No. 01 / PHYSICS EXPERIMENT</small><h1>Wheelbarrow</h1></div><div><button id="pause">Pause</button> <button id="reset">Restart</button></div></header>
-<div class="stats"><span><b id="delivered">0 / 6</b>delivered · need 4</span><span><b id="time">0:00</b>elapsed</span><span><b id="spills">0</b>spills</span></div>
-<canvas id="game" width="1200" height="640" aria-label="Delivery yard. Use W S to move, A D to turn, arrow keys also move and steer. Mouse tilts the tray. E recovers bricks." tabindex="0"></canvas>
-<p class="message" id="message" role="status">Six loose bricks. A gentle start is a good start.</p>
-<footer><div><kbd>WASD / arrows</kbd> push, reverse & steer &nbsp; <kbd>Mouse</kbd> balance the tray<br><kbd>Mouse to top</kbd> tip forward &nbsp; <kbd>E</kbd> recover nearby brick &nbsp; <kbd>P</kbd> pause &nbsp; <kbd>R</kbd> restart</div><div class="muted">First-person prototype · mouse position sets tilt<br>Center mouse = level. Release movement to slow down.</div></footer></main>
-<script>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Wheelbarrow — The Garden Job</title><meta name="description" content="A sunlit garden, six loose bricks, and two unsteady hands. A first-person wheelbarrow balancing game."><link rel="icon" href="data:,"><link rel="stylesheet" href="style.css"><script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script></head>
+<body><main><canvas id="game" aria-label="First-person wheelbarrow. WASD or arrows move and steer. Mouse balances the load. E recovers bricks." tabindex="0"></canvas>
+<div class="vignette" aria-hidden="true"></div>
+<header><div class="brand"><span class="eyebrow">A LITTLE HEAVY LIFTING</span><h1>Wheelbarrow<span>THE GARDEN JOB</span></h1></div><div class="top-right"><span class="chapter">CHAPTER 01 <i> / </i> GARDEN</span><button id="pause" title="Pause (P)">Pause</button><button id="reset" title="Restart (R)">Restart</button></div></header>
+<section class="job"><span class="eyebrow">TODAY'S DELIVERY</span><div><b id="delivered">0<span>/6</span></b><p>Bricks for the garden<br><small>Four gets the job done.</small></p></div><div class="progress" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div><footer><span><strong id="time">0:00</strong> elapsed</span><span><strong id="spills">0</strong> spills</span></footer></section>
+<div class="bearing" id="bearing">↑ POTTING SHED</div>
+<aside class="map-card"><span class="eyebrow">THE GARDEN</span><canvas id="map" width="240" height="140" aria-label="Map of garden paths, position, delivery bay and spilled bricks"></canvas><div><i></i> wide path <span>≋ shortcut</span></div></aside>
+<div class="bottom"><div class="hint"><span class="hint-icon">✦</span><div><span class="eyebrow">STEADY DOES IT</span><p id="message" role="status">Mouse balances. WASD moves. Take your time.</p></div></div><div class="balance"><div id="balance-dot"></div><span>LEVEL</span></div></div>
+<div class="controls"><span><kbd>W A S D</kbd> / <kbd>↑ ← ↓ →</kbd> move & steer</span><span><kbd>MOUSE</kbd> balance · top to unload</span><span><kbd>E</kbd> recover</span><span><kbd>P</kbd> pause</span></div>
+<div class="overlay" id="paused" hidden><div><span class="eyebrow">TAKE A BREATHER</span><h2>Tools down.</h2><p>Your bricks can wait.</p><button id="resume">Back to the garden</button><small>or press P</small></div></div>
+<div class="overlay" id="loading"><div><span class="eyebrow">CHAPTER ONE</span><h2>The garden job.</h2><p id="load-status">Opening the garden gate…</p></div></div>
+</main><script>
+
 'use strict';
-const canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d'),keys=new Set();
+const canvas=document.querySelector('#game'),keys=new Set();let graphicsReady=false;
 const blocks=[{x:410,y:110,w:360,h:145},{x:410,y:395,w:360,h:105}];
 let car,cargo,elapsed,spills,delivered,paused,won,handle,pitch,previousSpeed,notice,noticeUntil,accumulator=0,roll=0,mouseX=0,mouseY=0;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -48,54 +50,15 @@ function step(dt){if(paused)return;elapsed+=dt;
  }}
  for(let i=0;i<6;i++)for(let j=i+1;j<6;j++){let a=cargo[i],b=cargo[j];if(a.state!==b.state||a.state==='delivered')continue;let dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,d=Math.hypot(dx,dy,dz);if(d<13){if(d<.001){dx=1;d=1;}let n=[dx/d,dy/d,dz/d],over=(13-d)*.5;a.x-=n[0]*over;a.y-=n[1]*over;a.z-=n[2]*over;b.x+=n[0]*over;b.y+=n[1]*over;b.z+=n[2]*over;let rel=(b.vx-a.vx)*n[0]+(b.vy-a.vy)*n[1]+(b.vz-a.vz)*n[2];if(rel<0)for(const [k,v]of [['vx',n[0]],['vy',n[1]],['vz',n[2]]]){a[k]+=rel*.65*v;b[k]-=rel*.65*v;}}}
 }
-function rect(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(x,y,w,h)}
-function label(text,x,y,size=14,color='#51645b'){ctx.fillStyle=color;ctx.font=`600 ${size}px system-ui`;ctx.fillText(text,x,y)}
-function brick(x,y,id,scale=1){ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);rect(-7,-5,14,10,'#833f2d');rect(-6,-7,12,9,'#d77f50');rect(-4,-5,3,3,'#ad5a39');rect(1,-5,3,3,'#ad5a39');ctx.restore()}
-
-// Software perspective: forward, lateral, height; clip each face at the camera.
-function cameraPoint(p){const dx=p[0]-car.x,dy=p[1]-car.y;return [dx*Math.cos(car.a)+dy*Math.sin(car.a)+140,-dx*Math.sin(car.a)+dy*Math.cos(car.a),p[2]]}
-function project(p){return [600+p[1]*560/p[0],170+(110-p[2])*560/p[0]]}
-function clipped(points){let out=[];for(let i=0;i<points.length;i++){let a=points[i],b=points[(i+1)%points.length],ia=a[0]>=8,ib=b[0]>=8;if(ia)out.push(a);if(ia!==ib){let t=(8-a[0])/(b[0]-a[0]);out.push(a.map((v,k)=>v+(b[k]-v)*t))}}return out}
-function draw(){
- const sky=ctx.createLinearGradient(0,0,0,300);sky.addColorStop(0,'#8fafb6');sky.addColorStop(1,'#e7dabc');ctx.fillStyle=sky;ctx.fillRect(0,0,1200,640);rect(0,170,1200,470,'#b9b191');
- ctx.fillStyle='#f5deb0';ctx.beginPath();ctx.arc(980,80,32,0,Math.PI*2);ctx.fill();
- let faces=[];
- function face(points,color){let ps=points.map(cameraPoint),depth=ps.reduce((a,p)=>a+p[0],0)/ps.length;faces.push({ps:clipped(ps),depth,color})}
- function quad(x,y,w,h,z,color){face([[x,y,z],[x+w,y,z],[x+w,y+h,z],[x,y+h,z]],color)}
- function box(x,y,z,w,h,t,colors,transform=p=>p){let p=[[x,y,z],[x+w,y,z],[x+w,y+h,z],[x,y+h,z],[x,y,z+t],[x+w,y,z+t],[x+w,y+h,z+t],[x,y+h,z+t]].map(transform);for(const [ids,col]of [[[0,1,5,4],colors[0]],[[1,2,6,5],colors[1]],[[2,3,7,6],colors[0]],[[3,0,4,7],colors[1]],[[4,5,6,7],colors[2]]])face(ids.map(i=>p[i]),col)}
- // Ground tessellation avoids giant polygons crossing the perspective camera.
- for(let x=0;x<1200;x+=40)for(let y=0;y<640;y+=40)quad(x,y,40,40,0,((x+y)/40)%2?'#c7bea0':'#c3ba9b');
- for(let x=240;x<940;x+=35)quad(x,512,35,75,.3,'#e4d6b3');
- for(let y=340;y<550;y+=30)quad(220,y,75,30,.3,'#e4d6b3');for(let y=350;y<550;y+=30)quad(875,y,75,30,.3,'#e4d6b3');
- for(let x=380;x<820;x+=28)box(x,283,0,8,83,3,['#958d70','#a29b80','#b0a17b']);
- for(const r of blocks){box(r.x,r.y,0,r.w,r.h,80,['#4b675d','#3b574e','#789080']);for(let x=r.x+10;x<r.x+r.w;x+=45)box(x,r.y-1,8,3,2,62,['#9baa89','#738574','#8c9f86'])}
- for(let y=230;y<425;y+=20)quad(990,y,170,20,.5,'#7a947a');for(let y=230;y<425;y+=24){quad(990,y,6,12,1,'#ffebba');quad(1154,y,6,12,1,'#ffebba')}for(let x=990;x<1160;x+=24){quad(x,230,12,6,1,'#ffebba');quad(x,419,12,6,1,'#ffebba')}
- // Fence and distant route markers.
- for(let x=0;x<=1200;x+=80){box(x,25,0,5,5,55,['#69766a','#536558','#96a48c']);box(x,615,0,5,5,55,['#69766a','#536558','#96a48c'])}
- for(const b of cargo)if(b.state!=='tray')box(b.x-7,b.y-5,Math.max(0,b.z-6),14,10,8,['#a6583b','#7c402d',b.state==='delivered'?'#edbe76':'#dc8b55']);
- const tray=p=>{let x=p[0]*Math.cos(pitch)+p[2]*Math.sin(pitch),z=-p[0]*Math.sin(pitch)+p[2]*Math.cos(pitch),y=p[1]*Math.cos(roll)+z*Math.sin(roll);z=-p[1]*Math.sin(roll)+z*Math.cos(roll);return[car.x+x*Math.cos(car.a)-y*Math.sin(car.a),car.y+x*Math.sin(car.a)+y*Math.cos(car.a),z+35]};
- box(-42,-31,-4,84,62,4,['#42635f','#365651','#8ba9a0'],tray);
- box(-44,-34,0,88,4,13,['#42635f','#365651','#a7c1b1'],tray);box(-44,30,0,88,4,13,['#42635f','#365651','#a7c1b1'],tray);
- box(-44,-30,0,4,60,13,['#42635f','#365651','#a7c1b1'],tray);box(40,-30,0,4,60,13,['#42635f','#365651','#a7c1b1'],tray);
- for(let y of [-27,23]){box(-105,y,-5,70,5,5,['#85643d','#624e34','#d1b17c'],tray);box(-66,y-2,8,16,9,10,['#956849','#b78059','#d6a278'],tray)}
- for(const b of cargo)if(b.state==='tray')box(b.x-7,b.y-5,b.z-6,14,10,10,['#a8573b','#80412e','#e19762'],tray);
- faces.sort((a,b)=>b.depth-a.depth);for(const f of faces){if(f.ps.length<3)continue;ctx.beginPath();f.ps.forEach((p,i)=>{let q=project(p);if(i)ctx.lineTo(...q);else ctx.moveTo(...q)});ctx.closePath();ctx.fillStyle=f.color;ctx.fill();}
- // Fixed, readable destination bearing plus compact yard map.
- rect(20,20,270,62,'#1f3836e8');label('DELIVER FOUR OF SIX',36,45,16,'#f4c465');label('Release movement to slow down',36,66,13,'#e6e3cf');
- rect(968,20,212,137,'#1f3836e8');label('YARD / YOU ▲',983,43,12,'#f4c465');ctx.save();ctx.translate(980,50);ctx.scale(.155,.155);rect(0,0,1200,640,'#c8bfa0');for(let r of blocks)rect(r.x,r.y,r.w,r.h,'#486258');rect(990,230,170,195,'#f3c367');for(let b of cargo)if(b.state==='ground'){ctx.fillStyle='#983e25';ctx.beginPath();ctx.arc(b.x,b.y,13,0,7);ctx.fill()}ctx.translate(car.x,car.y);ctx.rotate(car.a);ctx.fillStyle='#183e3e';ctx.beginPath();ctx.moveTo(30,0);ctx.lineTo(-20,-20);ctx.lineTo(-20,20);ctx.closePath();ctx.fill();ctx.restore();
- let bearing=Math.atan2(325-car.y,1070-car.x)-car.a;while(bearing>Math.PI)bearing-=Math.PI*2;while(bearing< -Math.PI)bearing+=Math.PI*2;
- label((Math.abs(bearing)<.2?'↑':bearing>0?'→':'←')+' DELIVERY · '+Math.round(Math.hypot(1070-car.x,325-car.y)/10)+' m',470,48,19,'#203d37');
- rect(22,530,240,89,'#1f3836ee');label('MOUSE = BALANCE',38,555,14,'#f4c465');label('Center to level · top to tip',38,578,13,'#e4e7d7');label('Tilt '+Math.round(roll*57)+'° / '+Math.round(pitch*57)+'°',38,601,13,'#e4e7d7');
- ctx.strokeStyle='#e9d9ab';ctx.lineWidth=2;ctx.strokeRect(1100,537,62,62);ctx.beginPath();ctx.moveTo(1131,537);ctx.lineTo(1131,599);ctx.moveTo(1100,568);ctx.lineTo(1162,568);ctx.stroke();ctx.fillStyle='#f4c465';ctx.beginPath();ctx.arc(1131+mouseX*29,568+mouseY*29,5,0,7);ctx.fill();
- if(paused){rect(0,0,1200,640,'#132b2bdc');label('PAUSED',485,310,40,'#f4c465');label('Press P or Resume to continue',447,350,18,'#fff0cf')}
- document.querySelector('#delivered').textContent=delivered+' / 6';document.querySelector('#time').textContent=Math.floor(elapsed/60)+':'+String(Math.floor(elapsed%60)).padStart(2,'0');document.querySelector('#spills').textContent=spills;
- const near=cargo.some(b=>b.state==='ground'&&Math.hypot(b.x-car.x,b.y-car.y)<90);
- document.querySelector('#message').textContent=paused?'Paused — your load is safe.':near?'E — recover a nearby brick':elapsed<noticeUntil?notice:delivered===6?'Perfect delivery — all six accounted for! R to retry.':inBay(car.x,car.y)?'Stop here. Move mouse to the TOP of the view to unload.':won?'Delivery accepted! Collect the remaining bricks for a perfect six.':'Mouse left/right rolls the tray. Forward/back changes pitch. Keep the bricks centered.';
-}
 function setTilt(clientX,clientY){const r=canvas.getBoundingClientRect();mouseX=clamp((clientX-r.left)/r.width*2-1,-1,1);mouseY=clamp((clientY-r.top)/r.height*2-1,-1,1)}
 canvas.addEventListener('pointermove',e=>{if(!paused)setTilt(e.clientX,e.clientY)});
 canvas.addEventListener('pointerleave',()=>{mouseX=mouseY=0});
 window.addEventListener('keydown',e=>{let k=e.key.toLowerCase();if([' ','arrowup','arrowdown','arrowleft','arrowright','w','a','s','d','e','r','p'].includes(k))e.preventDefault();if(!e.repeat){if(k==='r')reset();if(k==='p')toggle();if(k==='e'&&!paused)recover();}keys.add(k)});window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{keys.clear();if(!paused)toggle()});document.querySelector('#pause').onclick=toggle;document.querySelector('#reset').onclick=reset;
-reset();let last=performance.now();function frame(now){accumulator+=Math.min((now-last)/1000,.1);last=now;while(accumulator>=1/120){step(1/120);accumulator-=1/120;}draw();requestAnimationFrame(frame)}requestAnimationFrame(frame);
-</script></html>
+reset();let last=performance.now();function frame(now){accumulator+=Math.min((now-last)/1000,.1);last=now;while(accumulator>=1/120){if(graphicsReady)step(1/120);accumulator-=1/120;}draw();requestAnimationFrame(frame)}requestAnimationFrame(frame);
 
+function getState(){return {car,cargo,elapsed,spills,delivered,paused,won,handle,pitch,roll,mouseX,mouseY,blocks,notice,noticeUntil};}
+function draw(){if(window.renderGame)window.renderGame(getState());}
+window.Wheelbarrow={getState,ready(){graphicsReady=true;document.querySelector('#loading').hidden=true;},toggle,reset};
+window.addEventListener('error',()=>{if(!graphicsReady)document.querySelector('#load-status').textContent='The garden could not load. Please refresh, or try a browser with WebGL 2 graphics enabled.';});
+
+</script><script type="module" src="./garden.js"></script></body></html>

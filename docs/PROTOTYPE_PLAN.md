@@ -20,3 +20,5 @@ Use this repository's own remote and static hosting; follow the parent project's
 M1 implementation complete locally on 14 September 2026. Six-of-six safe and recovery replays pass. Browser layout, pause, and console checks recorded in PLAYTEST.md. Human feel testing remains the next gate.
 
 Revision 2 changes the playtesting target to first-person pushing with mouse-controlled pitch and roll. Full delivery/recovery and balance correction regressions pass; see PLAYTEST.md. Next milestone is external human feel testing of the new control scheme.
+
+Revision 3: stylized 3D Garden Job is the active visual slice. Renderer and assets are now local static files; initial single-file constraint has been superseded for this graphics upgrade. Construction and farm progression remain future milestones. Preserve the working balance mechanic while testing rendering, complete browser routes and cargo readability.
