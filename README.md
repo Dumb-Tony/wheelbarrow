@@ -4,7 +4,7 @@ A standalone 2.5D cargo physics experiment. Deliver at least four of six loose b
 
 ## Play
 
-Public deployment: https://dumb-tony.github.io/wheelbarrow/ (deployment verification recorded in docs/PLAYTEST.md).
+Public deployment: https://dumb-tony.github.io/wheelbarrow/ (verified live 14 September 2026; first playable commit 6fb487b).
 
 Open index.html directly for offline play. No installation, assets, build step, or network dependency. Desktop keyboard required.
 
@@ -27,3 +27,4 @@ Run `node test-physics.cjs` for deterministic input replays of a full safe deliv
 Overhead driving plus a side-view cargo inset. Six independent bodies use spherical contacts, gravity, momentum, friction, raised tray edges, and storage collisions. Handle angle changes gravity along the tray; turns apply lateral acceleration; rumble strips bounce the load. No brick rotation, full chassis rigid-body simulation, audio, or touch controls. Small screens fit the interface but make yard labels small.
 
 Design: docs/GDD.md. Milestone: docs/PROTOTYPE_PLAN.md. External testing: docs/PLAYTEST.md.
+

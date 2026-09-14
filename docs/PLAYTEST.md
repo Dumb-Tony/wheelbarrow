@@ -30,3 +30,9 @@ These are automated simulation replays and browser UI checks, **not manual human
 4. Adjust handle height and explain what it did to the load.
 5. Pause, switch away and return, then restart.
 6. Report browser, screen size, delivered/time/spills and what felt unclear. Did the failure seem caused by your input? Could you correct it? Would you retry?
+
+Additional final-build browser checks: Restart from pause visibly restored zero counters and running state; P on the focused canvas paused successfully. Final error/warning logs were empty.
+
+## Public deployment
+
+Verified https://dumb-tony.github.io/wheelbarrow/ in the browser on 14 September 2026: game title, canvas, controls and initial counters loaded successfully from GitHub Pages. First playable commit: 6fb487b. Public repository: https://github.com/Dumb-Tony/wheelbarrow.
