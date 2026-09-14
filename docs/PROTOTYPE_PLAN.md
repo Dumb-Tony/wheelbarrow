@@ -16,3 +16,5 @@ No campaign, progression economy, networking, asset pipeline, or dependency-heav
 
 ## Later sharing milestone
 Use this repository's own remote and static hosting; follow the parent project's standing instructions when shipping. Keep published contents limited to this game. Record the verified public URL and commit in README. First request prepares for later external testing; never report a public link before deployment succeeds.
+
+M1 implementation complete locally on 14 September 2026. Six-of-six safe and recovery replays pass. Browser layout, pause, and console checks recorded in PLAYTEST.md. Human feel testing remains the next gate.

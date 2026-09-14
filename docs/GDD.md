@@ -40,3 +40,7 @@ Readable shapes and silhouettes before decorative assets. Persistent short contr
 
 ## Validation gate
 A new player should start interacting within 30 seconds. Run an entire successful objective, intentionally cause a recoverable mistake, and complete after recovery. Record automated browser checks separately from manual feel testing. Ask playtesters what caused their failure, whether correction felt possible, and whether they wanted another attempt. Choose the next milestone from this evidence rather than adding content automatically.
+
+## Implemented experiment — 14 September 2026
+
+M1 implemented as a labeled 2.5D simulation: overhead steering and a side cargo view. Six bodies with spherical contacts use gravity, friction, inertia, raised rim slopes and yard obstacle contacts. Pitch follows persistent handle height with damping; Space temporarily tips forward. A 120 Hz fixed step caps catch-up to 0.1 seconds. No camera shake. Stationary steering is permitted. Releasing movement brakes. Recovery is one brick per E within 90 yard units, including around storage edges. Delivered bricks settle and lock into their delivered state; time continues after four for optional completion of six. See PLAYTEST.md for evidence and simplifying assumptions.

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Wheelbarrow · A small delivery disaster</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#172c2c;color:#f8ecd4;font-family:system-ui,sans-serif}main{max-width:1280px;margin:auto;padding:22px}header{display:flex;justify-content:space-between;align-items:center;gap:14px}h1{font-size:34px;letter-spacing:-1.5px;margin:0}small,.muted{color:#b6c7bd}button{background:#f4c465;color:#233732;border:0;border-radius:7px;padding:10px 16px;font-weight:750;cursor:pointer}button:focus-visible{outline:3px solid white;outline-offset:3px}.stats{display:flex;gap:25px;padding:18px 0;font-size:14px}.stats b{font-size:24px;color:#f4c465;margin-right:6px}canvas{display:block;width:100%;aspect-ratio:1200/640;background:#d4ccb0;border-radius:12px}footer{display:flex;gap:20px;justify-content:space-between;margin-top:13px;font-size:13px;line-height:1.8}kbd{color:#f4c465;font-weight:bold}.message{color:#f4c465;font-weight:650;min-height:24px;margin:10px 0 0}@media(max-width:650px){main{padding:10px}h1{font-size:25px}.stats{gap:12px}.stats b{font-size:20px}footer{display:block}header small{display:none}}
+main{max-width:min(1280px,max(650px,calc((100vh - 290px)*1.875 + 44px)))}
+</style>
+<main><header><div><small>YARD JOB No. 01 / PHYSICS EXPERIMENT</small><h1>Wheelbarrow</h1></div><div><button id="pause">Pause</button> <button id="reset">Restart</button></div></header>
+<div class="stats"><span><b id="delivered">0 / 6</b>delivered · need 4</span><span><b id="time">0:00</b>elapsed</span><span><b id="spills">0</b>spills</span></div>
+<canvas id="game" width="1200" height="640" aria-label="Delivery yard. Use W S to move, A D to turn, arrow keys to adjust handles, E to recover and Space to tip." tabindex="0"></canvas>
+<p class="message" id="message" role="status">Six loose bricks. A gentle start is a good start.</p>
+<footer><div><kbd>W / S</kbd> push / reverse &nbsp; <kbd>A / D</kbd> steer &nbsp; <kbd>↑ / ↓</kbd> raise / lower handles<br><kbd>Space</kbd> tip forward &nbsp; <kbd>E</kbd> recover nearby brick &nbsp; <kbd>P</kbd> pause &nbsp; <kbd>R</kbd> restart</div><div class="muted">2.5D simplification · independent cargo, spherical contacts<br>Deliver inside the striped bay. Recover spills and keep going.</div></footer></main>
+<script>
+'use strict';
+const canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d'),keys=new Set();
+const blocks=[{x:410,y:110,w:360,h:145},{x:410,y:395,w:360,h:105}];
+let car,cargo,elapsed,spills,delivered,paused,won,handle,pitch,previousSpeed,notice,noticeUntil,accumulator=0;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function reset(){car={x:145,y:325,a:0,v:0};cargo=Array.from({length:6},(_,i)=>({id:i,x:(i%3-1)*17,y:(Math.floor(i/3)-.5)*17,z:7,vx:0,vy:0,vz:0,state:'tray'}));elapsed=spills=delivered=handle=pitch=previousSpeed=0;paused=won=false;keys.clear();accumulator=0;notice='Six loose bricks. A gentle start is a good start.';noticeUntil=5;document.querySelector('#pause').textContent='Pause';}
+function say(s){notice=s;noticeUntil=elapsed+4;}
+function toggle(){paused=!paused;keys.clear();document.querySelector('#pause').textContent=paused?'Resume':'Pause';}
+function world(b){return{x:car.x+Math.cos(car.a)*b.x-Math.sin(car.a)*b.y,y:car.y+Math.sin(car.a)*b.x+Math.cos(car.a)*b.y};}
+function inBay(x,y){return x>990&&x<1160&&y>230&&y<425;}
+function recover(){let b=cargo.find(b=>b.state==='ground'&&Math.hypot(b.x-car.x,b.y-car.y)<90);if(b){Object.assign(b,{state:'tray',x:-15,y:0,z:40,vx:0,vy:0,vz:0});say('Brick recovered. Let it settle before pushing.');}else say('Get within the dotted recovery circle of a spilled brick.');}
+function step(dt){if(paused)return;elapsed+=dt;
+ const throttle=(keys.has('w')?1:0)-(keys.has('s')?1:0),turn=(keys.has('d')?1:0)-(keys.has('a')?1:0);
+ handle=clamp(handle+((keys.has('arrowup')?1:0)-(keys.has('arrowdown')?1:0))*dt*.55,-.28,.65);
+ const target=keys.has(' ')?1.05:handle;pitch+=(target-pitch)*Math.min(1,dt*5);
+ previousSpeed=car.v;car.v+=throttle*90*dt;car.v*=Math.exp(-(throttle?.45:2.4)*dt);car.v=clamp(car.v,-85,165);
+ const omega=turn*(.5+Math.abs(car.v)/115);car.a+=omega*dt;
+ const ox=car.x,oy=car.y;car.x=clamp(car.x+Math.cos(car.a)*car.v*dt,45,1165);car.y=clamp(car.y+Math.sin(car.a)*car.v*dt,60,585);
+ for(const r of blocks)if(car.x>r.x-26&&car.x<r.x+r.w+26&&car.y>r.y-26&&car.y<r.y+r.h+26){car.x=ox;car.y=oy;car.v=-car.v*.15;}
+ const acceleration=(car.v-previousSpeed)/dt;
+ const rough=car.x>370&&car.x<820&&car.y>280&&car.y<370;
+ for(const b of cargo){if(b.state==='tray'){
+  b.vx+=(Math.sin(pitch)*190-acceleration*.85)*dt;b.vy+=(-omega*car.v*1.45)*dt;b.vz-=220*dt;
+  b.x+=b.vx*dt;b.y+=b.vy*dt;b.z+=b.vz*dt;
+  const edgeX=Math.max(0,Math.abs(b.x)-24),edgeY=Math.max(0,Math.abs(b.y)-15);const floor=6+Math.max(edgeX*.9,edgeY*1.1);
+  if(b.z<floor){b.z=floor;b.vz=Math.max(0,-b.vz*.15);b.vx*=Math.exp(-2.8*dt);b.vy*=Math.exp(-2.8*dt);if(edgeX)b.vx-=Math.sign(b.x)*150*dt;if(edgeY)b.vy-=Math.sign(b.y)*160*dt;
+   if(rough&&Math.abs(car.v)>55)b.vz+=Math.abs(car.v)*.5*dt*(1+Math.sin(car.x*.35))*20;
+  }
+  if(Math.abs(b.x)>43||Math.abs(b.y)>32){const p=world(b);Object.assign(b,{state:'ground',x:p.x,y:p.y,z:Math.min(50,b.z),vx:Math.cos(car.a)*(car.v+b.vx)-Math.sin(car.a)*b.vy,vy:Math.sin(car.a)*(car.v+b.vx)+Math.cos(car.a)*b.vy});if(!inBay(b.x,b.y)){spills++;say('Load overboard! Stop nearby and press E to recover.');}}
+ }else if(b.state==='ground'){
+  b.vz-=220*dt;b.x=clamp(b.x+b.vx*dt,20,1180);b.y=clamp(b.y+b.vy*dt,40,605);b.z+=b.vz*dt;
+  for(const r of blocks)if(b.x>r.x-7&&b.x<r.x+r.w+7&&b.y>r.y-7&&b.y<r.y+r.h+7){const ds=[b.x-r.x+7,r.x+r.w+7-b.x,b.y-r.y+7,r.y+r.h+7-b.y];const side=ds.indexOf(Math.min(...ds));if(side===0){b.x=r.x-7;b.vx=-Math.abs(b.vx)*.2}if(side===1){b.x=r.x+r.w+7;b.vx=Math.abs(b.vx)*.2}if(side===2){b.y=r.y-7;b.vy=-Math.abs(b.vy)*.2}if(side===3){b.y=r.y+r.h+7;b.vy=Math.abs(b.vy)*.2}}
+  if(b.z<6){b.z=6;b.vz=Math.max(0,-b.vz*.2);b.vx*=Math.exp(-5*dt);b.vy*=Math.exp(-5*dt);}
+  if(inBay(b.x,b.y)&&b.z<8&&Math.hypot(b.vx,b.vy)<15){b.state='delivered';delivered++;say(delivered>=4?'Delivery accepted! Bring the remaining bricks for a perfect six.':'Brick delivered. Keep them coming.');if(delivered>=4)won=true;}
+ }}
+ for(let i=0;i<6;i++)for(let j=i+1;j<6;j++){let a=cargo[i],b=cargo[j];if(a.state!==b.state||a.state==='delivered')continue;let dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,d=Math.hypot(dx,dy,dz);if(d<13){if(d<.001){dx=1;d=1;}let n=[dx/d,dy/d,dz/d],over=(13-d)*.5;a.x-=n[0]*over;a.y-=n[1]*over;a.z-=n[2]*over;b.x+=n[0]*over;b.y+=n[1]*over;b.z+=n[2]*over;let rel=(b.vx-a.vx)*n[0]+(b.vy-a.vy)*n[1]+(b.vz-a.vz)*n[2];if(rel<0)for(const [k,v]of [['vx',n[0]],['vy',n[1]],['vz',n[2]]]){a[k]+=rel*.65*v;b[k]-=rel*.65*v;}}}
+}
+function rect(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(x,y,w,h)}
+function label(text,x,y,size=14,color='#51645b'){ctx.fillStyle=color;ctx.font=`600 ${size}px system-ui`;ctx.fillText(text,x,y)}
+function brick(x,y,id,scale=1){ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);rect(-7,-5,14,10,'#833f2d');rect(-6,-7,12,9,'#d77f50');rect(-4,-5,3,3,'#ad5a39');rect(1,-5,3,3,'#ad5a39');ctx.restore()}
+function draw(){ctx.clearRect(0,0,1200,640);rect(0,0,1200,640,'#cec8ac');
+ for(let x=25;x<1200;x+=45)for(let y=25;y<640;y+=45){ctx.fillStyle='#c3bea4';ctx.fillRect(x,y,2,2)}
+ ctx.strokeStyle='#e8e0c5';ctx.lineWidth=85;ctx.beginPath();ctx.moveTo(145,330);ctx.lineTo(270,550);ctx.lineTo(900,550);ctx.lineTo(1060,330);ctx.stroke();
+ label('WIDE ROUTE · take your time',440,565,17);rect(370,282,450,86,'#b2a887');for(let x=380;x<820;x+=28)rect(x,286,8,77,'#918f77');label('SHORTCUT / RUMBLE STRIPS',432,325,15,'#f7efd6');
+ for(const r of blocks){rect(r.x+5,r.y+8,r.w,r.h,'#afa68b');rect(r.x,r.y,r.w,r.h,'#5b7062');for(let x=r.x+10;x<r.x+r.w;x+=45){rect(x,r.y+12,30,r.h-24,'#697e6b')}label('YARD STORAGE',r.x+105,r.y+r.h/2,17,'#c2ceb1')}
+ rect(990,230,170,195,'#778f77');ctx.strokeStyle='#f7e7b6';ctx.lineWidth=3;ctx.setLineDash([12,8]);ctx.strokeRect(993,233,164,189);ctx.setLineDash([]);label('DELIVERY',1010,265,22,'#fff0cf');label('STOP + SPACE',1005,405,16,'#fff0cf');
+ label('START',95,280,16);label('01 — THE SIX-BRICK JOB',35,40,19);label('FOUR MAKES A DELIVERY. SIX MAKES YOUR DAY.',35,65,12);
+ for(const b of cargo)if(b.state!=='tray'){if(b.state==='ground'){ctx.strokeStyle='#917252';ctx.setLineDash([3,8]);ctx.beginPath();ctx.arc(b.x,b.y,90,0,Math.PI*2);ctx.stroke();ctx.setLineDash([])}brick(b.x,b.y-b.z*.3,b.id)}
+ ctx.save();ctx.translate(car.x,car.y);ctx.rotate(car.a);rect(-62,-20,42,5,'#6b5944');rect(-62,15,42,5,'#6b5944');rect(30,-8,26,16,'#263f3a');rect(-34,-29,73,58,'#354e4b');rect(-29,-24,61,48,'#8da5a0');for(const b of cargo)if(b.state==='tray')brick(b.x,b.y-b.z*.15,b.id);ctx.restore();
+ // A side view makes handle pitch and each brick's vertical motion readable.
+ rect(825,20,350,173,'#233c39');label('LIVE LOAD / SIDE VIEW',843,45,12,'#f4c465');ctx.save();ctx.translate(995,124);ctx.rotate(pitch);rect(-105,12,64,5,'#d2b477');rect(-48,8,97,5,'#9dbab0');rect(-48,-6,5,20,'#9dbab0');rect(45,-6,5,20,'#9dbab0');for(const b of cargo)if(b.state==='tray')brick(b.x,-b.z,b.id,1.2);ctx.restore();label(`HANDLES ${Math.round(handle*100)}%  ·  ${Math.round(Math.abs(car.v))} speed`,843,176,12,'#c6d8ca');
+ if(paused){rect(0,0,1200,640,'#132b2bdc');label('PAUSED',485,310,40,'#f4c465');label('Press P or Resume to continue',447,350,18,'#fff0cf')}
+ document.querySelector('#delivered').textContent=delivered+' / 6';document.querySelector('#time').textContent=Math.floor(elapsed/60)+':'+String(Math.floor(elapsed%60)).padStart(2,'0');document.querySelector('#spills').textContent=spills;
+ const near=cargo.some(b=>b.state==='ground'&&Math.hypot(b.x-car.x,b.y-car.y)<90);
+ document.querySelector('#message').textContent=paused?'Paused — your load is safe.':near?'E — recover a nearby brick':elapsed<noticeUntil?notice:delivered===6?'Perfect delivery — all six accounted for! R to try a cleaner run.':inBay(car.x,car.y)?'Brake, then hold Space to tip into the bay.':won?'Delivery accepted. Recover any remaining bricks for six out of six.':'Gentle starts. Wide turns. Raise the handles to slide cargo forward.';
+}
+window.addEventListener('keydown',e=>{let k=e.key.toLowerCase();if([' ','arrowup','arrowdown','w','a','s','d','e','r','p'].includes(k))e.preventDefault();if(!e.repeat){if(k==='r')reset();if(k==='p')toggle();if(k==='e'&&!paused)recover();}keys.add(k)});window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{keys.clear();if(!paused)toggle()});document.querySelector('#pause').onclick=toggle;document.querySelector('#reset').onclick=reset;
+reset();let last=performance.now();function frame(now){accumulator+=Math.min((now-last)/1000,.1);last=now;while(accumulator>=1/120){step(1/120);accumulator-=1/120;}draw();requestAnimationFrame(frame)}requestAnimationFrame(frame);
+</script></html>
