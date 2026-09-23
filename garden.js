@@ -2,6 +2,9 @@ import * as T from 'three';
 import { RoundedBoxGeometry } from './vendor/RoundedBoxGeometry.js';
 import { RoomEnvironment } from './vendor/RoomEnvironment.js';
 import { mergeGeometries } from './vendor/BufferGeometryUtils.js';
+import { surface } from './surfaces.js';
+import { applyTrayPose } from './controls.mjs';
+import { EffectComposer, RenderPass, GTAOPass, OutputPass } from './vendor/render-effects.js';
 
 // All scenery and textures are generated here. Nothing is fetched from a CDN.
 const canvas=document.querySelector('#game');
@@ -14,10 +17,10 @@ renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicTone
 const scene=new T.Scene();scene.background=new T.Color('#b5d2cb');scene.fog=new T.FogExp2('#b5caba',.00048);
 const camera=new T.PerspectiveCamera(59,1,2,6000);
 const pmrem=new T.PMREMGenerator(renderer),room=new RoomEnvironment();
-scene.environment=pmrem.fromScene(room,.04).texture;scene.environmentIntensity=.32;room.dispose();pmrem.dispose();
-scene.add(new T.HemisphereLight('#dcebd7','#6a6c37',1.35));
-const sun=new T.DirectionalLight('#ffe1a2',3.3);sun.position.set(-250,850,-320);sun.target.position.set(570,0,300);sun.castShadow=true;
-sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-920,right:920,top:820,bottom:-820,near:10,far:2400});sun.shadow.bias=-.00015;sun.shadow.normalBias=.65;sun.shadow.radius=2;
+scene.environment=pmrem.fromScene(room,.04).texture;scene.environmentIntensity=.25;room.dispose();pmrem.dispose();
+scene.add(new T.HemisphereLight('#cbded7','#504734',.85));
+const sun=new T.DirectionalLight('#ffdab0',3.6);sun.position.set(-120,540,-360);sun.target.position.set(570,0,300);sun.castShadow=true;
+sun.shadow.mapSize.set(4096,4096);Object.assign(sun.shadow.camera,{left:-870,right:870,top:720,bottom:-720,near:10,far:2300});sun.shadow.bias=-.00006;sun.shadow.normalBias=.22;sun.shadow.radius=2;
 scene.add(sun,sun.target);
 let seed=4711;function rnd(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;}function between(a,b){return a+rnd()*(b-a);}
 const palette={sage:'#537866',rim:'#83a08a',dark:'#304c41',wood:'#aa7844',bark:'#675238',stone:'#b4ad88',cream:'#e8cfa3',brick:'#b76943',roof:'#97734f'};
@@ -29,6 +32,8 @@ function texture(base,kind,size=256){let c=document.createElement('canvas');c.wi
 const materialCache=new Map();
 function mat(color,extra={}){if(!Object.keys(extra).length){if(!materialCache.has(color))materialCache.set(color,new T.MeshStandardMaterial({color,roughness:.85}));return materialCache.get(color);}return new T.MeshStandardMaterial({color,roughness:.85,...extra});}
 const mats={paint:mat('#ffffff',{map:texture(palette.sage,'metal'),roughness:.5,metalness:.28}),rim:mat(palette.rim,{roughness:.36,metalness:.45}),steel:mat('#7d8370',{metalness:.7,roughness:.35}),dark:mat(palette.dark),wood:mat('#ffffff',{map:texture(palette.wood,'wood'),roughness:.78}),bark:mat(palette.bark),stone:mat('#ffffff',{map:texture('#bcb494','stone')}),plaster:mat('#ffffff',{map:texture('#dfc598','stone')}),roof:mat('#a78359'),rubber:mat('#313b32',{roughness:.96}),glove:mat('#cfa86b',{roughness:.91}),cuff:mat('#52674e'),soil:mat('#68533b'),terracotta:mat('#b87551'),leaf:mat('#5e7c43'),leafLight:mat('#8b9d52')};
+Object.assign(mats,{paint:surface('paint',renderer),wood:surface('wood',renderer),stone:surface('stone',renderer),plaster:surface('plaster',renderer),roof:surface('roof',renderer),glove:surface('fabric',renderer)});
+mats.roofLight=mats.roof.clone();mats.roofLight.color.set('#dcc4a9');
 const unit=new T.BoxGeometry(1,1,1),sphere=new T.IcosahedronGeometry(1,1),cylinder=new T.CylinderGeometry(1,1,1,10);
 const flowerMats=['#dacb87','#c79aa3','#a29bb9','#f0dfac'].map(c=>mat(c)),flowerCenter=mat('#c99b42');
 function mesh(geo,material,parent=scene,x=0,y=0,z=0){let m=new T.Mesh(geo,material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
@@ -38,10 +43,9 @@ function rod(a,b,r,material,parent=scene){let av=new T.Vector3(...a),bv=new T.Ve
 function textSign(text,w,h,color='#f7e7b9',background='#345b47'){let c=document.createElement('canvas');c.width=512;c.height=192;let g=c.getContext('2d');g.fillStyle=background;g.fillRect(0,0,512,192);g.strokeStyle='#d2c591';g.lineWidth=3;g.strokeRect(12,12,488,168);g.fillStyle=color;g.font='bold 47px Georgia';g.textAlign='center';g.textBaseline='middle';g.fillText(text,256,96);let tex=new T.CanvasTexture(c);tex.colorSpace=T.SRGBColorSpace;return new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshStandardMaterial({map:tex,roughness:.9,side:T.DoubleSide}));}
 
 // A textured lawn and broad gravel paths, with the original collision footprint.
-const groundTex=texture('#7f9153','grass',512);groundTex.repeat.set(32,32);
-const ground=mesh(new T.PlaneGeometry(5000,5000),mat('#ffffff',{map:groundTex}),scene,600,-2,320);ground.rotation.x=-Math.PI/2;ground.castShadow=false;
-const pathTex=texture('#c6b68c','stone',512);pathTex.repeat.set(4,1);
-const pathMat=mat('#ffffff',{map:pathTex});
+const groundMat=surface('grass',renderer);for(let t of [groundMat.map,groundMat.normalMap,groundMat.roughnessMap])t.repeat.set(55,55);
+const ground=mesh(new T.PlaneGeometry(5000,5000),groundMat,scene,600,-2,320);ground.rotation.x=-Math.PI/2;ground.castShadow=false;
+const pathMat=surface('gravel',renderer);for(let t of [pathMat.map,pathMat.normalMap,pathMat.roughnessMap])t.repeat.set(7,1);
 function pathSegment(a,b,width){let dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz);let m=box((a[0]+b[0])/2,-.1,(a[1]+b[1])/2,len+width/2,2,width,pathMat);m.rotation.y=-Math.atan2(dz,dx);m.castShadow=false;}
 pathSegment([65,325],[1050,325],104);pathSegment([145,325],[270,550],105);pathSegment([270,550],[900,550],105);pathSegment([900,550],[1070,330],105);
 pathSegment([1070,220],[1070,435],165);
@@ -71,7 +75,7 @@ box(590,50,447.5,360,100,105,mats.plaster,scene,3);box(590,8,447.5,368,16,111,ma
 for(let x of [409,771]){let g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute([x,98,395,x,141,447.5,x,98,500],3));g.computeVertexNormals();mesh(g,new T.MeshStandardMaterial({map:mats.plaster.map,side:T.DoubleSide,roughness:.9}));}
 for(let x=414;x<770;x+=29){box(x,50,393,1.4,83,2,mat('#c7ac80'));}
 for(let z of [397,498])box(590,98,z,369,8,6,mats.wood);
-for(let side of [-1,1]){const roof=box(590,121,447.5+side*31,389,7,76,mats.roof);roof.rotation.x=side*.56;for(let x=400;x<780;x+=24)for(let j=0;j<4;j++){let zz=447.5+side*(9+j*16),yy=141-j*10;let tile=box(x+11,yy,zz,22,3,21,mat(j%2?'#a8865d':'#aa8b63'),scene,1);tile.rotation.x=side*.56;}}
+for(let side of [-1,1]){const roof=box(590,121,447.5+side*31,389,7,76,mats.roof);roof.rotation.x=side*.56;for(let x=400;x<780;x+=24)for(let j=0;j<4;j++){let zz=447.5+side*(9+j*16),yy=141-j*10;let tile=box(x+11,yy,zz,22,3,21,j%2?mats.roof:mats.roofLight,scene,1);tile.rotation.x=side*.56;}}
 rod([391,107,387],[785,107,387],3,mats.dark);rod([783,105,387],[783,4,387],2.2,mats.dark);
 for(let x of [479,686]){box(x,59,392,49,48,4,mats.wood,scene,1);box(x,59,389,40,39,2,mat('#7caaa2',{roughness:.35,metalness:.2}));box(x,59,387,3,41,2,mats.cream??mats.plaster);box(x,59,387,42,3,2,mats.plaster);box(x,33,384,58,6,12,mats.wood);box(x,29,380,51,13,15,mats.terracotta);for(let xx=-20;xx<=20;xx+=10)flower(x+xx,37,380,13);}
 box(591,40,392,56,80,5,mats.dark,scene,2);for(let x=569;x<618;x+=8)box(x,40,388,5.5,75,2,mats.paint);ellipsoid(610,39,384,2,2,2,mats.steel);
@@ -126,7 +130,7 @@ for(let o of toRemove)o.removeFromParent();for(let b of batches.values()){let g=
 const rig=new T.Group();scene.add(rig);const tray=new T.Group();rig.add(tray);tray.position.y=35;
 // A tapered steel basin, with curved corners on floor, lip and rolled edge.
 box(0,-2,0,72,4,47,mats.paint,tray,2);
-function basinWall(points){let g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(points.flat(),3));g.setIndex([0,1,2,0,2,3]);g.computeVertexNormals();const m=mesh(g,new T.MeshStandardMaterial({map:mats.paint.map,roughness:.52,metalness:.3,side:T.DoubleSide}),tray);return m;}
+function basinWall(points){let g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(points.flat(),3));g.setAttribute('uv',new T.Float32BufferAttribute([0,0,1,0,1,1,0,1],2));g.setIndex([0,1,2,0,2,3]);g.computeVertexNormals();let m=mats.paint.clone();m.side=T.DoubleSide;return mesh(g,m,tray);}
 basinWall([[-36,0,-23.5],[36,0,-23.5],[44,15,-34],[-44,15,-34]]);basinWall([[36,0,23.5],[-36,0,23.5],[-44,15,34],[44,15,34]]);
 basinWall([[-36,0,23.5],[-36,0,-23.5],[-44,15,-34],[-44,15,34]]);basinWall([[36,0,-23.5],[36,0,23.5],[44,15,34],[44,15,-34]]);
 const rimCurve=new T.CatmullRomCurve3([new T.Vector3(-42,15,-34),new T.Vector3(42,15,-34),new T.Vector3(45,15,-30),new T.Vector3(45,15,30),new T.Vector3(42,15,34),new T.Vector3(-42,15,34),new T.Vector3(-45,15,30),new T.Vector3(-45,15,-30)],true,'catmullrom',.05);
@@ -143,21 +147,24 @@ for(let i=0;i<8;i++){let a=i*Math.PI/4;rod([36,15,4],[36+Math.cos(a)*8,15+Math.s
 for(let side of [-1,1]){let z=side*26;box(-68,7,z,17,11,12,mats.glove,tray,4);for(let i=0;i<4;i++)box(-62+i*.3,4,z-4.2+i*2.8,8,8,2.3,mats.glove,tray,1);let thumb=box(-65,4,z-side*7,10,5,5,mats.glove,tray,2);thumb.rotation.y=side*.45;box(-80,6,z,13,12,13,mats.cuff,tray,3);rod([-85,6,z],[-118,-10,z*1.48],6,mats.cuff,tray);for(let j=-1;j<=1;j++)box(-69,12.5,z+j*2.2,9,.2,.25,mats.wood,tray);}
 
 // Each brick is a separate mesh, with bevels, rough material and three holes.
-const brickTex=texture('#bf744e','stone',256),brickMat=mat('#ffffff',{map:brickTex,roughness:.95}),holeMat=mat('#744c32');
+const brickMat=surface('brick',renderer),holeMat=mat('#523322');
 const brickMeshes=[];for(let i=0;i<6;i++){let g=new T.Group();box(0,0,0,13,9,10,brickMat,g,.85);for(let x of [-4,0,4]){let h=mesh(new T.CylinderGeometry(1.2,1.05,.3,10),holeMat,g,x,4.48,0);h.castShadow=false;}g.rotation.y=(i%2-.5)*.04;scene.add(g);brickMeshes.push(g);}
 
 const map=document.querySelector('#map'),mc=map.getContext('2d'),els={delivered:document.querySelector('#delivered'),time:document.querySelector('#time'),spills:document.querySelector('#spills'),message:document.querySelector('#message'),bearing:document.querySelector('#bearing'),paused:document.querySelector('#paused'),dot:document.querySelector('#balance-dot'),bars:[...document.querySelectorAll('.progress i')]};
 document.querySelector('#resume').onclick=()=>window.Wheelbarrow.toggle();
-function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}window.addEventListener('resize',resize);resize();
+const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));
+const ao=new GTAOPass(scene,camera,1,1,undefined,{radius:12,distanceExponent:1,thickness:3,scale:1});ao.blendIntensity=.85;composer.addPass(ao);composer.addPass(new OutputPass());
+let photo=null;
+function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;renderer.setSize(w,h,false);composer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();photo?.resize();}window.addEventListener('resize',resize);resize();
 let lastMap=-1,lastHUD=-1,fpsStart=performance.now(),frames=0;
 function mapDraw(s){mc.clearRect(0,0,240,140);mc.fillStyle='#718562';mc.fillRect(0,0,240,140);mc.save();mc.translate(5,5);mc.scale(.19,.2);mc.strokeStyle='#d9c9a0';mc.lineWidth=30;mc.lineJoin='round';mc.beginPath();mc.moveTo(145,325);mc.lineTo(270,550);mc.lineTo(900,550);mc.lineTo(1070,330);mc.stroke();mc.strokeStyle='#adad7b';mc.lineWidth=20;mc.beginPath();mc.moveTo(145,325);mc.lineTo(1070,325);mc.stroke();mc.fillStyle='#345c46';for(let b of s.blocks)mc.fillRect(b.x,b.y,b.w,b.h);mc.fillStyle='#e7c26f';mc.fillRect(990,230,170,195);for(let b of s.cargo)if(b.state==='ground'){mc.fillStyle='#e9a477';mc.beginPath();mc.arc(b.x,b.y,13,0,7);mc.fill();}mc.translate(s.car.x,s.car.y);mc.rotate(s.car.a);mc.fillStyle='#fff5d6';mc.beginPath();mc.moveTo(25,0);mc.lineTo(-18,15);mc.lineTo(-12,0);mc.lineTo(-18,-15);mc.closePath();mc.fill();mc.restore();}
 window.renderGame=s=>{
  const {car,pitch,roll,cargo}=s;rig.position.set(car.x,0,car.y);rig.rotation.y=-car.a;
  // Match physics: positive pitch lowers the nose; positive roll lowers the right.
- tray.rotation.order='XZY';tray.rotation.x=-roll;tray.rotation.z=-pitch;
+ applyTrayPose(tray,pitch,roll);
  for(let i=0;i<6;i++){let b=cargo[i],m=brickMeshes[i];if(b.state==='tray'){if(m.parent!==tray)tray.add(m);m.position.set(b.x,b.z-1.5,b.y);}else{if(m.parent!==scene)scene.add(m);m.position.set(b.x,Math.max(4.5,b.z),b.y);}}
  camera.position.set(car.x-Math.cos(car.a)*130,106,car.y-Math.sin(car.a)*130);camera.lookAt(car.x+Math.cos(car.a)*300,0,car.y+Math.sin(car.a)*300);
- renderer.render(scene,camera);
+ if(photo?.active)photo.render();else composer.render();
  const now=performance.now();frames++;if(now-fpsStart>1000){canvas.dataset.fps=String(Math.round(frames*1000/(now-fpsStart)));canvas.dataset.drawCalls=String(renderer.info.render.calls);frames=0;fpsStart=now;}if(now-lastHUD>90){lastHUD=now;els.delivered.innerHTML=s.delivered+'<span>/6</span>';els.time.textContent=Math.floor(s.elapsed/60)+':'+String(Math.floor(s.elapsed%60)).padStart(2,'0');els.spills.textContent=s.spills;els.paused.hidden=!s.paused;els.bars.forEach((e,i)=>e.classList.toggle('done',i<s.delivered));els.dot.style.transform=`translate(${s.mouseX*22}px,${s.mouseY*22}px)`;
  let b=Math.atan2(325-car.y,1070-car.x)-car.a;while(b>Math.PI)b-=Math.PI*2;while(b< -Math.PI)b+=Math.PI*2;els.bearing.textContent=(Math.abs(b)<.25?'↑':b>0?'→':'←')+' DELIVERY  ·  '+Math.round(Math.hypot(1070-car.x,325-car.y)/10)+' m';
  const near=cargo.some(b=>b.state==='ground'&&Math.hypot(b.x-car.x,b.y-car.y)<90),bay=car.x>990&&car.x<1160&&car.y>230&&car.y<425;
@@ -166,6 +173,7 @@ window.renderGame=s=>{
 };
 // A small diagnostic snapshot is read-only and useful for checking rendering cost.
 window.gardenDiagnostics=()=>({drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,version:T.REVISION});
+import('./photo.js').then(({setupPhoto})=>{photo=setupPhoto({scene,camera,renderer,mergeGeometries});}).catch(e=>console.error('Photo view unavailable',e));
 window.Wheelbarrow.ready();
 if(location.hostname==='localhost'&&new URLSearchParams(location.search).has('replay'))import('./tests/replay.js');
 

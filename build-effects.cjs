@@ -1,0 +1,2 @@
+const esbuild=require('esbuild');
+(async()=>{for(const name of ['render-effects','raytrace'])await esbuild.build({entryPoints:[name+'.entry.js'],outfile:'vendor/'+name+'.js',bundle:true,format:'esm',platform:'browser',minify:true,legalComments:'eof',plugins:[{name:'shared-three',setup(b){b.onResolve({filter:/^three$/},()=>({path:'three',external:true}));}}]});})().catch(e=>{console.error(e);process.exitCode=1;});

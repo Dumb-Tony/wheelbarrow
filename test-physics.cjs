@@ -22,3 +22,12 @@ run("reset();keys.add('arrowup');tick(120)");const arrows=run('car.x');run("rese
 run("reset();keys.add('arrowright');tick(60)");const right=run('car.a');run("reset();keys.add('d');tick(60)");assert.equal(run('car.a'),right,'right arrow matches D');
 run("reset();keys.add('arrowdown');tick(60)");assert(run('car.x<145'),'down arrow reverses');run("reset();keys.add('arrowleft');tick(60)");assert(run('car.a<0'),'left arrow turns left');
 console.log('PASS mouse counterbalance and arrow controls');
+// Check the real renderer transform, not merely the physics variable's sign.
+const THREE=require('./vendor/three.module.js'),{applyTrayPose}=require('./controls.mjs');
+const tray=new THREE.Object3D();applyTrayPose(tray,0,.4);tray.updateMatrixWorld(true);
+const rightRim=new THREE.Vector3(0,0,30).applyMatrix4(tray.matrixWorld);
+assert(rightRim.y<0,'mouse-right roll must lower the visible right rim');
+applyTrayPose(tray,0,-.4);tray.updateMatrixWorld(true);assert(new THREE.Vector3(0,0,-30).applyMatrix4(tray.matrixWorld).y<0,'mouse-left lowers left rim');
+applyTrayPose(tray,.4,0);tray.updateMatrixWorld(true);assert(new THREE.Vector3(35,0,0).applyMatrix4(tray.matrixWorld).y<0,'mouse-up tips the nose forward');
+run('reset();mouseX=.4;tick(100)');assert(run('cargo.reduce((sum,b)=>sum+b.y,0)>0'),'cargo shifts toward lowered right rim');
+console.log('PASS visible tilt agrees with mouse and gravity');

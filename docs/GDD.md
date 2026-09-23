@@ -60,3 +60,9 @@ User selected warm, rich-material, playful stylized 3D and wants progression thr
 The graphics upgrade supersedes the initial single-HTML constraint: static index.html plus garden.js, style.css and a checked-in MIT-licensed Three.js 0.186.0 renderer. No CDN or external asset service is required. Local use requires HTTP rather than file opening. The tested cargo simulation remains embedded in index.html, separate from the 3D presentation.
 
 Art: sage painted steel and warm wood; rounded bricks and work gloves; sunlit greenhouse and stucco cottage; layered trees, beds, stone and gravel, timber signage, light atmospheric haze. Full-screen interface uses a quiet delivery card, map, small balance reticle and short controls. Rendering uses PBR materials, generated texture maps, sunlight shadow maps, environment light, batched static meshes and instanced small detail. Stable camera; no added head bob or shake.
+
+## Revision 4 — 22 September 2026
+
+Bug fix: renderer roll sign was inverted against physical cargo response. Positive mouse X must lower the right (+Z) rim. Rendering now uses shared applyTrayPose in controls.mjs with positive X-axis rotation; physics input mappings and success criteria stay intact.
+
+Lighting/material pass: generated albedo + normal + roughness surfaces, 4096-pixel sun shadow map, less ambient fill, lower warm sun, and GTAO contact shading. Genuine progressive path tracing is available as an optional frozen photo view with four bounces and a simple edge-preserving filter. Gameplay remains rasterized with contact shading; no claim of real-time RT or hardware RT support. Photo view preserves pause state, unload/recovery controls, and simulation time.

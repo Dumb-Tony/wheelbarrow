@@ -22,3 +22,5 @@ M1 implementation complete locally on 14 September 2026. Six-of-six safe and rec
 Revision 2 changes the playtesting target to first-person pushing with mouse-controlled pitch and roll. Full delivery/recovery and balance correction regressions pass; see PLAYTEST.md. Next milestone is external human feel testing of the new control scheme.
 
 Revision 3: stylized 3D Garden Job is the active visual slice. Renderer and assets are now local static files; initial single-file constraint has been superseded for this graphics upgrade. Construction and farm progression remain future milestones. Preserve the working balance mechanic while testing rendering, complete browser routes and cargo readability.
+
+Revision 4 adds the roll-sign regression test, richer material maps/contact shadows, and an optional paused GPU path-traced view. Revalidate browser routes and photo entry/exit, resource loading, noise convergence and keyboard return before shipping.

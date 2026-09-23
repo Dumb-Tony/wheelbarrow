@@ -35,3 +35,13 @@ Run `npm start` (or `node serve.cjs`), then open http://localhost:8769. No insta
 For real-time browser input replays, start the local server and open `/?replay=safe` or `/?replay=recovery`. These use the game's actual input handlers and frame loop and display pass/fail. They only activate on localhost. They are automated tests, not human feel testing.
 
 See docs/PLAYTEST.md for actual results. Known physics limits: spherical brick contacts without rotation, simplified tray rims and chassis, and approximate spill conversion. Most scenery is decorative; building collision footprints and the original route layout are retained. No campaign progression is implemented yet.
+
+## Controls and lighting revision — 22 September 2026
+
+Mouse roll now agrees with the visible tray: right lowers the right rim, left lowers the left. Forward/back mapping remains mouse-top tips forward, mouse-bottom tips backward. The old renderer applied the opposite sign to roll even though the cargo forces were correct. A regression test transforms actual rim points with the shared renderer pose and checks their heights.
+
+New materials use generated albedo, normal and roughness maps for painted metal, wood, brick, stone, stucco, roofing, gravel, grass and gloves. Sunlight uses a 4096-pixel shadow map; GTAO supplies contact shading during play.
+
+**Ray-traced view** pauses the game and snapshots the scene for genuine four-bounce GPU path tracing, with instanced detail expanded in the snapshot and a small edge-preserving image filter. This is an optional photo view, not real-time ray tracing during movement or a promise of hardware RT-core acceleration. The first use compiles a substantial shader and can take several seconds. Noise reduces as samples accumulate. Back to play or Escape restores the previous pause state; R returns and restarts. The renderer is fetched from this same site only when needed.
+
+Run `npm run build:effects` after changing the effect bundle entry files (requires npm install). Runtime files are checked in, so regular npm start and npm test still require no install. Browser and physics tests are in docs/PLAYTEST.md.

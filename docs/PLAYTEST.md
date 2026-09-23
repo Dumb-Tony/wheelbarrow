@@ -74,3 +74,17 @@ These automated replays do not replace human feel testing. Current art is the ga
 Final real-time browser recovery replay: **PASS — 6/6 delivered, 6 spills, 53 seconds**, with no restart between spilling and delivery and no JavaScript errors. Pause showed the new overlay, Back to the garden resumed, and Restart restored zero counters on the normal game page. Victory copy was corrected to prioritize all-six completion over the temporary delivery notice.
 
 Responsive screenshots checked at 800×600 and 390×844: counters, pause/restart and controls remain visible without horizontal page overflow. Narrow views intentionally hide the map/chapter label and crop the 3D view; desktop keyboard and mouse remain required.
+
+## 22 September 2026 — controls and lighting revision
+
+- Reproduced the inversion in source: renderer used -roll although positive roll forces cargo toward the right. Corrected the renderer through controls.mjs.
+- npm test passes all earlier physics routes and new actual Three.js transform assertions: positive roll lowers the right rim, negative roll lowers left, positive pitch lowers the nose, and mouse-right shifts cargo right.
+- Browser screenshot after pointer drag right confirms the right rim moves down; cargo motion and tray now agree.
+- New complete browser safe route: **6/6 delivered, 0 spills, 46 seconds**, no JavaScript errors.
+- Initial ray-traced view test accumulated **623 samples**; returned to the running game at the same 0:05 timer value and zero spills. Then Restart cleared the timer. This is actual GPU path tracing, not a renamed shadow-map effect. First-use shader compilation took several seconds. Upstream Three.js/path-tracer deprecation and driver precision warnings remain, without errors in the tested path.
+
+Rendering now uses procedural normal/roughness/albedo textures and GTAO in active play. Optional photo mode freezes simulation and traces four bounces. Its progressive image can be noisy, especially initially, and uses 85% render resolution plus a small edge-preserving filter. It is not real-time ray tracing during play. Automated input replays still do not substitute for human feel testing.
+
+Final recovery replay with the corrected pose and new effects: **6/6 delivered, 6 spills, 53 seconds**; no JavaScript errors. A local performance sample after the replay was 153 fps; this is not a cross-device guarantee.
+
+Final visual checks: filtered ray-traced photo accumulated 258 samples without JavaScript errors; Escape restored play. The 800 x 600 layout retained accessible controls and readable delivery status. Temporary viewport override was reset.
