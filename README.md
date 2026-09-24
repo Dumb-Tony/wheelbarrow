@@ -45,3 +45,8 @@ New materials use generated albedo, normal and roughness maps for painted metal,
 **Ray-traced view** pauses the game and snapshots the scene for genuine four-bounce GPU path tracing, with instanced detail expanded in the snapshot and a small edge-preserving image filter. This is an optional photo view, not real-time ray tracing during movement or a promise of hardware RT-core acceleration. The first use compiles a substantial shader and can take several seconds. Noise reduces as samples accumulate. Back to play or Escape restores the previous pause state; R returns and restarts. The renderer is fetched from this same site only when needed.
 
 Run `npm run build:effects` after changing the effect bundle entry files (requires npm install). Runtime files are checked in, so regular npm start and npm test still require no install. Browser and physics tests are in docs/PLAYTEST.md.
+
+## Three garden estate jobs
+Open **Jobs** to read briefings and replay unlocked deliveries. Complete each target to unlock the next: Garden Job (4/6), Builders’ Passage (5/6), Muddy Service Run (6/6). The new layouts add solid path closures, staggered stone stacks, slowing mud and a timber gate. Stop beside the gate and press **E** to open it; E continues to recover spilled bricks. Restart resets the current job and gate, while unlocked jobs and best delivery/spill results remain saved in this browser. The completion card lets you advance or keep collecting the remaining bricks.
+
+All jobs preserve the warm textured garden style and optional ray-traced photo view. These are three layouts in the same estate; separate construction and farm settings are still future chapters. Local full-sequence input replay: `http://localhost:8769/?replay=campaign`.

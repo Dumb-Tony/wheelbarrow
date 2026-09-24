@@ -24,3 +24,5 @@ Revision 2 changes the playtesting target to first-person pushing with mouse-con
 Revision 3: stylized 3D Garden Job is the active visual slice. Renderer and assets are now local static files; initial single-file constraint has been superseded for this graphics upgrade. Construction and farm progression remain future milestones. Preserve the working balance mechanic while testing rendering, complete browser routes and cargo readability.
 
 Revision 4 adds the roll-sign regression test, richer material maps/contact shadows, and an optional paused GPU path-traced view. Revalidate browser routes and photo entry/exit, resource loading, noise convergence and keyboard return before shipping.
+
+Revision 5: user authorized real levels and expansion. Implement three garden estate jobs, increasing delivery targets, authored blockers, staggered stacks, muddy terrain, an interactive gate, job selection and saved unlocks. Validate each complete route and actual progression in browser. Preserve the established art standard for all subsequent chapters.

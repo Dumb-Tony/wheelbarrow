@@ -31,3 +31,15 @@ applyTrayPose(tray,0,-.4);tray.updateMatrixWorld(true);assert(new THREE.Vector3(
 applyTrayPose(tray,.4,0);tray.updateMatrixWorld(true);assert(new THREE.Vector3(35,0,0).applyMatrix4(tray.matrixWorld).y<0,'mouse-up tips the nose forward');
 run('reset();mouseX=.4;tick(100)');assert(run('cargo.reduce((sum,b)=>sum+b.y,0)>0'),'cargo shifts toward lowered right rim');
 console.log('PASS visible tilt agrees with mouse and gravity');
+// Complete each authored route using steering and throttle, including gate interaction.
+run('save.unlocked=2');
+for(let level=1;level<3;level++){
+ run(`selectLevel(${level});for(const [x,y] of levels[levelIndex].route){drive(x,y);if(levelIndex===2&&x===795)recover();}mouseY=-1;tick(3000)`);
+ console.log('job',level+1,run('JSON.stringify({delivered,spills,gateOpen})'));
+ assert.equal(run('delivered'),6,'all six delivered on authored job '+(level+1));assert.equal(run('spills'),0,'cautious job retains cargo');assert(run('won'),'job accepted');
+}
+run('selectLevel(2);drive(270,550);drive(795,550);keys.add("w");tick(120);keys.clear();tick(240)');assert(run('car.x<814'),'closed gate blocks travel');run('recover()');assert(run('gateOpen'),'stopped player opens gate');run('reset()');assert(!run('gateOpen'),'restart closes gate');
+run('save.unlocked=0;selectLevel(0);selectLevel(2)');assert.equal(run('levelIndex'),0,'locked job cannot be selected');
+console.log('PASS three jobs, obstacle routes, gate collision/open/reset and locked progression');
+let persisted=null;c.localStorage={setItem:(key,value)=>{persisted=value},getItem:()=>persisted};run('selectLevel(0);route()');assert.equal(JSON.parse(persisted).unlocked,1,'acceptance persists next unlock');assert.equal(JSON.parse(persisted).best[0].delivered,6,'perfect result saved');
+const restored={...c,window:{addEventListener:()=>{}}};vm.createContext(restored);vm.runInContext(source,restored);assert.equal(vm.runInContext('save.unlocked',restored),1,'unlock restored on reload');console.log('PASS saved progression survives fresh game initialization');
