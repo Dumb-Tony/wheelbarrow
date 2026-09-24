@@ -11,7 +11,7 @@ export function setupPhoto({scene,camera,renderer,mergeGeometries}){
    const {WebGLPathTracer,GradientEquirectTexture}=await import('./vendor/raytrace.js');if(token!==generation)return;
    // Let the pause notice paint before preparing the acceleration structure.
    await new Promise(r=>setTimeout(r,60));if(token!==generation)return;
-   scene.updateMatrixWorld(true);snapshot=scene.clone(true);snapshot.fog=null;snapshot.updateMatrixWorld(true);
+   scene.updateMatrixWorld(true);snapshot=scene.clone(true);snapshot.fog=null;const hidden=[];snapshot.traverse(o=>{if(!o.visible)hidden.push(o);});for(const o of hidden)o.removeFromParent();snapshot.updateMatrixWorld(true);
    // The path tracer does not support InstancedMesh. Expand only the snapshot.
    const instances=[];snapshot.traverse(o=>{if(o.isInstancedMesh)instances.push(o);});
    for(let inst of instances){const gs=[],matrix=new T.Matrix4();for(let i=0;i<inst.count;i++){inst.getMatrixAt(i,matrix);matrix.premultiply(inst.matrixWorld);let g=inst.geometry.clone();g.applyMatrix4(matrix);gs.push(g);}const g=mergeGeometries(gs);for(let item of gs)item.dispose();if(g){owned.push(g);snapshot.add(new T.Mesh(g,inst.material));}inst.removeFromParent();}

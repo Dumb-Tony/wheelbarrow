@@ -50,3 +50,12 @@ Run `npm run build:effects` after changing the effect bundle entry files (requir
 Open **Jobs** to read briefings and replay unlocked deliveries. Complete each target to unlock the next: Garden Job (4/6), Builders’ Passage (5/6), Muddy Service Run (6/6). The new layouts add solid path closures, staggered stone stacks, slowing mud and a timber gate. Stop beside the gate and press **E** to open it; E continues to recover spilled bricks. Restart resets the current job and gate, while unlocked jobs and best delivery/spill results remain saved in this browser. The completion card lets you advance or keep collecting the remaining bricks.
 
 All jobs preserve the warm textured garden style and optional ray-traced photo view. These are three layouts in the same estate; separate construction and farm settings are still future chapters. Local full-sequence input replay: `http://localhost:8769/?replay=campaign`.
+
+## Odd Jobs expansion — four destinations, six jobs
+**Jobs** now offers Construction, Village and Farm immediately, alongside the original three garden jobs. Your garden records remain saved.
+
+- **Timber for the Tower:** carry three long timbers through a crane-and-scaffolding construction yard. Turns shift this load more strongly.
+- **Get Gary Home:** your tipsy adult passenger leans on his own. Counterbalance with the mouse; stop in HOME and press E to help him out. If he tumbles, stop nearby and E helps him back in.
+- **The Biggest Pumpkin:** one large rolling load, farm mud, a fenced creek and timber bridge to the market.
+
+The established visual style is shared across every map, including the optional paused ray-traced view. These cargo types use arcade approximations, not full articulated-body or long-plank collision simulation. The recovered original concept and remaining ideas are recorded in docs/ORIGINAL_VISION.md. Local new-map input replay: `?replay=expansion`; all six jobs: `?replay=campaign`.

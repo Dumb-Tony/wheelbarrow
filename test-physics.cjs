@@ -43,3 +43,16 @@ run('save.unlocked=0;selectLevel(0);selectLevel(2)');assert.equal(run('levelInde
 console.log('PASS three jobs, obstacle routes, gate collision/open/reset and locked progression');
 let persisted=null;c.localStorage={setItem:(key,value)=>{persisted=value},getItem:()=>persisted};run('selectLevel(0);route()');assert.equal(JSON.parse(persisted).unlocked,1,'acceptance persists next unlock');assert.equal(JSON.parse(persisted).best[0].delivered,6,'perfect result saved');
 const restored={...c,window:{addEventListener:()=>{}}};vm.createContext(restored);vm.runInContext(source,restored);assert.equal(vm.runInContext('save.unlocked',restored),1,'unlock restored on reload');console.log('PASS saved progression survives fresh game initialization');
+for(let job=3;job<6;job++){
+ run(`selectLevel(${job});for(const [x,y] of levels[levelIndex].route)drive(x,y);keys.clear();tick(300);if(levels[levelIndex].kind==='gary')recover();else{mouseY=-1;tick(3000);}`);
+ console.log('new destination',job,run('JSON.stringify({delivered,spills,x:car.x,y:car.y})'));
+ assert.equal(run('delivered'),run('levels[levelIndex].count'),'complete new destination '+job);assert.equal(run('spills'),0,'cautious new destination '+job);
+}
+for(const job of [3,4,5]){
+ run(`selectLevel(${job});mouseX=1;tick(720);mouseX=0;tick(360)`);assert(run('spills>0'),'new cargo can tumble');
+ run("for(let i=0;i<levels[levelIndex].count;i++){recover();tick(180)}");assert.equal(run("cargo.filter(b=>b.state==='tray').length"),run('levels[levelIndex].count'),'recover new cargo');
+ run("for(const [x,y] of levels[levelIndex].route)drive(x,y);tick(300);if(levels[levelIndex].kind==='gary')recover();else{mouseY=-1;tick(3000)}");assert(run('won'),'deliver new cargo after recovery');
+}
+run('selectLevel(4);tick(180)');assert(Math.abs(run('roll'))>.03,'Gary shifts balance without mouse input');run('selectLevel(4);recover()');assert.equal(run('delivered'),0,'Gary cannot disembark away from home');
+console.log('PASS new cargo tumble/recovery/full delivery and autonomous passenger weight');
+run('save.unlocked=0;selectLevel(3);for(const [x,y] of levels[3].route)drive(x,y);mouseY=-1;tick(3000)');assert.equal(run('save.unlocked'),0,'free destinations do not bypass garden progression');
